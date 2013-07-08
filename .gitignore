@@ -1,0 +1,73 @@
+# Compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Packages #
+############
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Logs and databases #
+######################
+*.log
+*.sql
+*.sqlite
+
+# Numerous always-ignore extensions #
+#####################################
+*.diff
+*.err
+*.orig
+*.rej
+*.swo
+*.swp
+*.vi
+*~
+*.sass-cache
+
+# OS or Editor folders #
+########################
+.DS_Store*
+Icon?
+ehthumbs.db
+Thumbs.db
+.cache
+.project
+.pydevproject
+.settings
+.tmproj
+*.esproj
+nbproject
+*.settings
+*.sublime-project
+*.sublime-workspace
+
+# Folders to ignore #
+#####################
+.hg
+.svn
+.CVS
+.idea
+.tmp
+intermediate
+node_modules
+publish
+
+# Project specific #
+####################
+temp
+components
+app/components
