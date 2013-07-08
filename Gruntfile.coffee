@@ -45,4 +45,7 @@ module.exports = (grunt) ->
         src: [".tmp/lib/<%= name %>.js"]
         dest: "dist/<%= name %>.js"
 
-  grunt.registerTask "default", ["clean", "bower", "coffee", "neuter"]
+  grunt.registerTask "default", ["clean", "coffee", "neuter"]
+
+  # TOOD Test
+  # grunt.registerTask "default", ["clean", "bower", "coffee", "neuter"]  
