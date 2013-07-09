@@ -1,8 +1,8 @@
 {
   "_comment": "Bower package manager configuration file",
   "name": "dom-utilities",
-  "version": "0.0.0",
-  "main": "dist/dom_utilities.js",
+  "version": "1.0.0",
+  "main": "dist/tree_search.js",
   "dependencies": {
     "ember": "~1.0.0-rc.6",
     "js-tree-cursor": "git@github.com:mbixby/js-tree-cursor.git"
