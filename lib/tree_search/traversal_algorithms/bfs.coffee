@@ -1,21 +1,20 @@
 TreeSearch.BFS = Ember.Mixin.create
   
-  getNextNode: ->
-    next = if @get '_shouldWalkLeft'
-      (@get '_treeCursor').leftAtLevel()
-    else
-      (@get '_treeCursor').rightAtLevel()
-    next ?= @set '_firstNodeAtCurrentLevel', 
-      (@getWithDefault '_firstNodeAtCurrentLevel', @get '_treeCursor').down()
-    next.node
-
+  _getNextNode: ->
+    successor = if @get '_shouldWalkLeft' then 'predecessor' else 'successor'
+    next = @get "_treeCursor.#{successor}AtSameDepth"
+    unless next
+      next = @get '_treeCursor.firstChild'
+      @incrementProperty depth
+    next
 
 TreeSearch.BFSWithQueue = Ember.Mixin.create
 
-  # TODO Support for leftward traversal
-  getNextNode: ->
-    queue = @getWithDefault '_queue', [@get '_treeCursor']
-    next = queue.shift()
-    queue.push x for x in next.down()
-    @set 'queue', queue
-    next.node
+  _getNextNode: ->
+    queue = @getWithDefault '_queue', [[@get '_treeCursor', 0]]
+    [next, depth] = queue.shift()
+    direction = if @get '_shouldWalkLeft' then -1 else 1
+    queue.push [x, depth + 1] for x in next.get 'children' by direction
+    @set '_queue', queue
+    @set 'depth', depth
+    next

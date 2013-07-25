@@ -1,0 +1,5 @@
+require 'mocha/mocha'
+require 'chai/chai'
+require 'handlebars/handlebars.runtime'
+require 'jquery/jquery'
+require 'ember/ember'

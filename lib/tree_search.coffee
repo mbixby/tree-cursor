@@ -1,4 +1,3 @@
-window.TreeSearch = TreeSearch = Ember.Object.extend()
+window.TreeSearch = TreeSearch = Ember.Namespace.create()
 
 require 'tree_search/*'
-require 'tree_search/traversal_algorithms/*'
