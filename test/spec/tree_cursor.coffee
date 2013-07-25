@@ -1,5 +1,3 @@
-require 'helpers/*'
-
 describe "TreeCursor", ->
   tree = TreeNode.create ascii: """
            A
@@ -69,11 +67,11 @@ describe "TreeCursor", ->
       expect(names).to.have.members ["D", "E"]
 
   describe "#successor", ->
-    it "should not find successor of G", ->
+    it "should not find successor of rightmost node at lowest depth", ->
       expect(cursors.get "G.successor").to.not.exist
 
   describe "#predecessor", ->
-    it "should not find predecessor of D", ->
+    it "should not find predecessor of leftmost node at lowest depth", ->
       expect(cursors.get "D.predecessor").to.not.exist
 
   describe "#findUpwardSuccessor", ->

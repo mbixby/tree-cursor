@@ -52,6 +52,14 @@ TreeSearch.TreeCursor.reopen(Ember.Copyable, Ember.Freezable, {
   isRoot: (function() {
     return this === this.get('root');
   }).property().volatile(),
+  firstChildFromRight: Ember.computed.alias('lastChild'),
+  firstChildFromLeft: Ember.computed.alias('firstChild'),
+  rightSuccessor: Ember.computed.alias('successor'),
+  leftSuccessor: Ember.computed.alias('predecessor'),
+  rightSuccessorAtSameDepth: Ember.computed.alias('successorAtSameDepth'),
+  leftSuccessorAtSameDepth: Ember.computed.alias('predecessorAtSameDepth'),
+  rightLeafSuccessor: Ember.computed.alias('leafSuccessor'),
+  leftLeafSuccessor: Ember.computed.alias('leafPredecessor'),
   findParentNode: void 0,
   findChildNodes: void 0,
   findFirstChildNode: void 0,
@@ -253,7 +261,7 @@ TreeSearch.TreeCursor.reopen(Ember.Copyable, Ember.Freezable, {
     if (depth === 0) {
       return succ;
     }
-    return succ.findSuccessorAtDepth(depth);
+    return succ != null ? succ.findSuccessorAtDepth(depth) : void 0;
   },
   findPredecessorAtDepth: function(depth) {
     var leftSibling, pred, _ref, _ref1;
@@ -264,25 +272,26 @@ TreeSearch.TreeCursor.reopen(Ember.Copyable, Ember.Freezable, {
     if (depth === 0) {
       return pred;
     }
-    return pred.findPredecessorAtDepth(depth);
+    return pred != null ? pred.findPredecessorAtDepth(depth) : void 0;
   },
-  findLeafSuccessor: function() {
-    var succ;
-    succ = this.get('successor');
-    if (!succ.get('firstChild')) {
+  findLeafSuccessor: function(direction) {
+    var succ, successorIsLeaf;
+    if (direction == null) {
+      direction = 'right';
+    }
+    succ = this.get("" + direction + "Successor");
+    if (!succ) {
+      return;
+    }
+    successorIsLeaf = !succ.get("firstChild");
+    if (successorIsLeaf) {
       return succ;
     } else {
-      return succ.get('leafSuccessor');
+      return succ.get("" + direction + "LeafSuccessor");
     }
   },
   findLeafPredecessor: function() {
-    var pred;
-    pred = this.get('predecessor');
-    if (!pred.get('firstChild')) {
-      return pred;
-    } else {
-      return pred.get('leafPredecessor');
-    }
+    return this.findLeafSuccessor('left');
   },
   createParent: function(properties) {
     if (this.get('isRoot')) {
@@ -416,28 +425,38 @@ TreeSearch.TreeCursor.reopen(Ember.Copyable, Ember.Freezable, {
 
 
 TreeSearch.BFS = Ember.Mixin.create({
-  _getNextNode: function() {
-    var next, successor;
-    successor = this.get('_shouldWalkLeft') ? 'predecessor' : 'successor';
-    next = this.get("_treeCursor." + successor + "AtSameDepth");
-    if (!next) {
-      next = this.get('_treeCursor.firstChild');
-      this.incrementProperty(depth);
+  _getNextCursor: function() {
+    var direction, firstCursorAtDepth, next;
+    direction = this.get("direction");
+    if (!this.get('_current')) {
+      next = this.get("_treeCursor");
     }
+    if (next == null) {
+      next = this.get("_current." + direction + "SuccessorAtSameDepth");
+    }
+    if (!next) {
+      firstCursorAtDepth = this.getWithDefault("_firstCursorAtCurrentDepth", this.get("_current"));
+      next = firstCursorAtDepth.get(direction === "left" ? "lastChild" : "firstChild");
+      this.set("_firstCursorAtCurrentDepth", next);
+      this.incrementProperty("depth");
+    }
+    this.set('_current', next);
     return next;
   }
 });
 
 TreeSearch.BFSWithQueue = Ember.Mixin.create({
-  _getNextNode: function() {
-    var depth, direction, next, queue, x, _i, _len, _ref, _ref1;
+  _getNextCursor: function() {
+    var child, children, depth, direction, next, queue, _i, _len, _ref, _ref1;
     queue = this.getWithDefault('_queue', [[this.get('_treeCursor', 0)]]);
-    _ref = queue.shift(), next = _ref[0], depth = _ref[1];
+    if (queue[0]) {
+      _ref = queue.shift(), next = _ref[0], depth = _ref[1];
+    }
     direction = this.get('_shouldWalkLeft') ? -1 : 1;
-    _ref1 = next.get('children');
-    for ((direction > 0 ? (_i = 0, _len = _ref1.length) : _i = _ref1.length - 1); direction > 0 ? _i < _len : _i >= 0; _i += direction) {
-      x = _ref1[_i];
-      queue.push([x, depth + 1]);
+    children = (_ref1 = next != null ? next.get('children') : void 0) != null ? _ref1 : [];
+    for ((direction > 0 ? (_i = 0, _len = children.length) : _i = children.length - 1); direction > 0 ? _i < _len : _i >= 0; _i += direction) {
+      child = children[_i];
+      queue.push([child, depth + 1]);
     }
     this.set('_queue', queue);
     this.set('depth', depth);
@@ -447,28 +466,30 @@ TreeSearch.BFSWithQueue = Ember.Mixin.create({
 
 
 TreeSearch.DFS = Ember.Mixin.create({
-  _getNextNode: function() {
-    var next, queue, x, _i, _ref;
-    queue = this.getWithDefault('_queue', [this.get('_treeCursor')]);
-    next = queue.pop();
-    _ref = next.children();
-    for (_i = _ref.length - 1; _i >= 0; _i += -1) {
-      x = _ref[_i];
-      queue.push(x);
+  _getNextCursor: function() {
+    var child, children, depth, direction, next, queue, _i, _len, _ref, _ref1;
+    queue = this.getWithDefault('_queue', [[this.get('_treeCursor', 0)]]);
+    if (queue[0]) {
+      _ref = queue.pop(), next = _ref[0], depth = _ref[1];
+    }
+    direction = this.get('_shouldWalkLeft') ? -1 : 1;
+    children = (_ref1 = next != null ? next.get('children') : void 0) != null ? _ref1 : [];
+    for ((direction > 0 ? (_i = 0, _len = children.length) : _i = children.length - 1); direction > 0 ? _i < _len : _i >= 0; _i += direction) {
+      child = children[_i];
+      queue.push([child, depth + 1]);
     }
     this.set('_queue', queue);
-    return next.node;
+    this.set('depth', depth);
+    return next;
   }
 });
 
 
 TreeSearch.LeavesOnlySearch = Ember.Mixin.create({
-  _getNextNode: function() {
-    if (this.get('_shouldWalkLeft')) {
-      return this.get('_treeCursor.leafPredecessor');
-    } else {
-      return this.get('_treeCursor.leafSuccessor');
-    }
+  _getNextCursor: function() {
+    var direction;
+    direction = this.get('direction');
+    return this.get("_treeCursor." + direction + "LeafSuccessor");
   }
 });
 
@@ -498,52 +519,64 @@ TreeSearch.Base.reopen(Ember.Evented, {
   },
   depth: 0,
   error: null,
+  result: (function() {
+    if (this.get('shouldYieldSingleResult')) {
+      return null;
+    } else {
+      return [];
+    }
+  }).property(),
   willEnterNode: Ember.K(),
   didEnterNode: Ember.K(),
   cursorClass: Ember.required(),
   _perform: function() {
-    var candidate, result;
+    var candidate, shouldStop;
     this._pickAlgorithm();
-    result = [];
+    if (this.get('shouldIgnoreInitialNode')) {
+      this.set('_treeCursor', this._getNextCursor());
+    }
     while (candidate = this._getNextNode()) {
-      this.trigger('willEnterNode', candidate);
-      if (this.shouldStopSearch(candidate)) {
+      shouldStop = this._visitNode(candidate);
+      if (shouldStop) {
         break;
       }
-      if (this.shouldAcceptNode(candidate)) {
-        result.push(candidate);
-        if (this.get('shouldYieldSingleResult')) {
-          break;
-        }
-      }
-      this.trigger('didEnterNode', candidate);
     }
-    return this._processResult(result);
+    return this.get('result');
   },
-  _processResult: function(result) {
-    var _ref;
-    if (this.get('shouldYieldSingleResult')) {
-      return (_ref = result[0]) != null ? _ref : null;
-    } else if (Ember.isEmpty(result)) {
-      return null;
-    } else {
-      return result;
-    }
-  },
-  _getNextCursor: Ember.K(),
   _getNextNode: function() {
     this.set('_treeCursor', this._getNextCursor());
     return this.get('_treeCursor.node');
+  },
+  _visitNode: function(candidate) {
+    this.trigger('willEnterNode', candidate);
+    if (this.shouldStopSearch(candidate)) {
+      return true;
+    }
+    if (this.shouldAcceptNode(candidate)) {
+      this._addToResult(candidate);
+      if (this.get('shouldYieldSingleResult')) {
+        return true;
+      }
+    }
+    this.trigger('didEnterNode', candidate);
+    return false;
+  },
+  _addToResult: function(node) {
+    if (this.get('shouldYieldSingleResult')) {
+      return this.set('result', node);
+    } else {
+      return (this.get('result')).push(node);
+    }
   },
   _pickAlgorithm: function() {
     var algorithm;
     algorithm = this.get('method');
     return algorithm.apply(this);
   },
+  _getNextCursor: null,
   _treeCursor: (function() {
     return (this.get('cursorClass')).create({
-      node: this.get('initialNode'),
-      search: this
+      node: this.get('initialNode')
     });
   }).property(),
   _shouldWalkLeft: (function() {

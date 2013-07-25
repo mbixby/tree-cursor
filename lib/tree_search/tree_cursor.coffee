@@ -82,7 +82,7 @@ TreeSearch.TreeCursor.reopen Ember.Copyable, Ember.Freezable,
   # @readonly
   # @type TreeCursor
   predecessor: memoize 'predecessor'
-
+  
   # @readonly
   # @type TreeCursor
   successorAtSameDepth: memoize 'successorAtSameDepth'
@@ -116,6 +116,36 @@ TreeSearch.TreeCursor.reopen Ember.Copyable, Ember.Freezable,
   isRoot:  (->
     this is @get 'root'
   ).property().volatile()
+
+  # @alias lastChild
+  # Handy when using attributes in bi-directional methods.
+  # @example
+  # ```
+  #   getFirstOrLastChild: (direction) ->
+  #     child = cursor.get "firstChildFrom#{direction}"
+  # ```
+  firstChildFromRight: Ember.computed.alias 'lastChild'
+
+  # @alias firstChild
+  firstChildFromLeft: Ember.computed.alias 'firstChild'
+
+  # @alias successor
+  rightSuccessor: Ember.computed.alias 'successor'
+
+  # @alias predecessor
+  leftSuccessor: Ember.computed.alias 'predecessor'
+
+  # @alias successorAtSameDepth
+  rightSuccessorAtSameDepth: Ember.computed.alias 'successorAtSameDepth'
+
+  # @alias predecessorAtSameDepth
+  leftSuccessorAtSameDepth: Ember.computed.alias 'predecessorAtSameDepth'
+
+  # @alias leafSuccessor
+  rightLeafSuccessor: Ember.computed.alias 'leafSuccessor'
+
+  # @alias leafPredecessor
+  leftLeafSuccessor: Ember.computed.alias 'leafPredecessor'
 
 
   # Find*Node methods
@@ -388,7 +418,7 @@ TreeSearch.TreeCursor.reopen Ember.Copyable, Ember.Freezable,
     # to recursively call this function for every next successor until
     # we find one at zero depth.
     return succ if depth is 0
-    succ.findSuccessorAtDepth depth
+    succ?.findSuccessorAtDepth depth
 
   # @type Function (number -> TreeCursor)
   # @private
@@ -400,19 +430,20 @@ TreeSearch.TreeCursor.reopen Ember.Copyable, Ember.Freezable,
     else
       @findPredecessorAndItsDepth depth
     return pred if depth is 0
-    pred.findPredecessorAtDepth depth
+    pred?.findPredecessorAtDepth depth
 
   # @type Function (number -> TreeCursor)
   # @private
-  findLeafSuccessor: ->
-    succ = @get 'successor'
-    if not succ.get 'firstChild' then succ else succ.get 'leafSuccessor'
+  findLeafSuccessor: (direction = 'right') ->
+    succ = @get "#{direction}Successor"
+    return unless succ
+    successorIsLeaf = not succ.get "firstChild"
+    if successorIsLeaf then succ else succ.get "#{direction}LeafSuccessor"
 
   # @type Function (number -> TreeCursor)
   # @private
   findLeafPredecessor: ->
-    pred = @get 'predecessor'
-    if not pred.get 'firstChild' then pred else pred.get 'leafPredecessor'
+    @findLeafSuccessor 'left'
 
 
   # Create* methods

@@ -1,20 +1,33 @@
 TreeSearch.BFS = Ember.Mixin.create
   
-  _getNextNode: ->
-    successor = if @get '_shouldWalkLeft' then 'predecessor' else 'successor'
-    next = @get "_treeCursor.#{successor}AtSameDepth"
+  # TODO Clean up
+  _getNextCursor: ->
+    direction = @get "direction"
+    next = @get "_treeCursor" unless @get '_current'
+    next ?= @get "_current.#{direction}SuccessorAtSameDepth"
+
     unless next
-      next = @get '_treeCursor.firstChild'
-      @incrementProperty depth
+      firstCursorAtDepth = @getWithDefault "_firstCursorAtCurrentDepth",
+        @get "_current"
+      next = firstCursorAtDepth.get if direction is "left" then "lastChild" else "firstChild"
+      @set "_firstCursorAtCurrentDepth", next
+      @incrementProperty "depth"
+
+    @set '_current', next
     next
 
+# BFSWithQueue preloads all children even if they won't be visited 
+# while searching
 TreeSearch.BFSWithQueue = Ember.Mixin.create
-
-  _getNextNode: ->
+  
+  _getNextCursor: ->
     queue = @getWithDefault '_queue', [[@get '_treeCursor', 0]]
-    [next, depth] = queue.shift()
+    [next, depth] = queue.shift() if queue[0]
+
     direction = if @get '_shouldWalkLeft' then -1 else 1
-    queue.push [x, depth + 1] for x in next.get 'children' by direction
+    children = (next?.get 'children') ? []
+    queue.push [child, depth + 1] for child in children by direction
+
     @set '_queue', queue
     @set 'depth', depth
     next

@@ -2,13 +2,19 @@ require 'tree_search/tree_cursor'
 require 'tree_search/traversal_algorithms/*'
 
 # TreeSearch
-# 
+#
 # Iteration over tree nodes with intent to collect and yield nodes that pass
 # particular constraints. 
-# TODO Documentation
 # 
-# Note that you can't change search parameters and constraints after you 
-# performed the search.
+# To use TreeSearch, you have to extend it first with your custom TreeCursor 
+# implementation to define how to walk in your tree (from node to node).
+# For examples on how to do this, see tests or other components 
+# using TreeSearch.
+# 
+# Note that:
+# * you can't change search parameters and constraints after you 
+#   performed the search
+# * consumers of TreeSearch will be exposed to tree nodes, not cursors
 
 TreeSearch.Base = Ember.Object.extend().reopenClass
   
@@ -69,6 +75,14 @@ TreeSearch.Base.reopen Ember.Evented,
   # @type Ember.Error
   error: null
 
+  # Collected search result
+  # Automatically returned when calling this.createAndPerform()
+  # TODO Enable array observers
+  # @type Array
+  result: (->
+    if @get 'shouldYieldSingleResult' then null else []
+  ).property()
+
   # Event triggered before the search iterates over a node
   # @protected
   # @type Function
@@ -86,46 +100,53 @@ TreeSearch.Base.reopen Ember.Evented,
   cursorClass: Ember.required()
 
   # Performs the search and returns result
-  # @returns {Array (object) | null} 
   # In case of null, you can check the @error property
   # TODO Performance optimizations
   # TODO Should we test every candidate with @shouldStopSearch?
   _perform: ->
     @_pickAlgorithm()
-    result = []
+    if @get 'shouldIgnoreInitialNode'
+      @set '_treeCursor', @_getNextCursor()
+
     while candidate = @_getNextNode()
-      @trigger 'willEnterNode', candidate
-      break if @shouldStopSearch candidate
-      if @shouldAcceptNode candidate
-        result.push candidate
-        break if @get 'shouldYieldSingleResult'
-      @trigger 'didEnterNode', candidate
-    @_processResult result
-
-  _processResult: (result) ->
-    if @get 'shouldYieldSingleResult'
-      result[0] ? null
-    else if Ember.isEmpty result
-      null
-    else
-      result
-
-  # Implemented by the class (mixin) that provides search algorithm
-  # @see this.method
-  _getNextCursor: Ember.K()
+      shouldStop = @_visitNode candidate
+      break if shouldStop
+    @get 'result'
 
   _getNextNode: ->
     @set '_treeCursor', @_getNextCursor()
     @get '_treeCursor.node'
 
+  # @returns yes if search should stop
+  _visitNode: (candidate) ->
+    @trigger 'willEnterNode', candidate
+    return yes if @shouldStopSearch candidate
+    if @shouldAcceptNode candidate
+      @_addToResult candidate
+      return yes if @get 'shouldYieldSingleResult'
+    @trigger 'didEnterNode', candidate
+    return no
+
+  # @returns no if search should stop
+  _addToResult: (node) ->
+    if @get 'shouldYieldSingleResult'
+      @set 'result', node
+    else
+      (@get 'result').push node
+
   _pickAlgorithm: ->
     algorithm = @get 'method'
     algorithm.apply this
 
+  # Implemented by the class (mixin) that provides search algorithm
+  # @see this.method
+  _getNextCursor: null
+
+  # Cursor pointing to current node
+  # (dynamic; changes when search is being performed)
   _treeCursor: (->
     (@get 'cursorClass').create
       node: @get 'initialNode'
-      search: this
   ).property()
 
   # Alias for @direction with boolean type

@@ -1,7 +1,5 @@
 TreeSearch.LeavesOnlySearch = Ember.Mixin.create
 
-  _getNextNode: ->
-    if @get '_shouldWalkLeft'
-      @get '_treeCursor.leafPredecessor'
-    else
-      @get '_treeCursor.leafSuccessor'
+  _getNextCursor: ->
+    direction = @get 'direction'
+    @get "_treeCursor.#{direction}LeafSuccessor"

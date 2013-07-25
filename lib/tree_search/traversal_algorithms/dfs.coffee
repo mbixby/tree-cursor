@@ -3,9 +3,14 @@ TreeSearch.DFS = Ember.Mixin.create
 
   # TODO Support for leftward traversal
   # TODO Change @depth property
-  _getNextNode: ->
-    queue = @getWithDefault '_queue', [@get '_treeCursor']
-    next = queue.pop()
-    queue.push x for x in next.children() by -1
+  _getNextCursor: ->
+    queue = @getWithDefault '_queue', [[@get '_treeCursor', 0]]
+    [next, depth] = queue.pop() if queue[0]
+
+    direction = if @get '_shouldWalkLeft' then -1 else 1
+    children = (next?.get 'children') ? []
+    queue.push [child, depth + 1] for child in children by direction
+
     @set '_queue', queue
-    next.node
+    @set 'depth', depth
+    next
