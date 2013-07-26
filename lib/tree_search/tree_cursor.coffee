@@ -1,11 +1,3 @@
-# @see `TreeSearch.TreeCursor._getIfTreeIsNotVolatile` for comments
-memoize = (name) -> 
-  ((key, value) -> 
-    if value then @_setIfTreeIsNotVolatile key, value
-    else  @_getIfTreeIsNotVolatile name
-  ).property().volatile()
-
-
 # TreeSearch.TreeCursor
 # 
 # TODO Docs (functional style, references:
@@ -16,12 +8,19 @@ memoize = (name) ->
 # and implementing at least methods @findParent and @findChildren.
 # Alternatively you can implement @findFirstChild and @findRightSibling.
 
-TreeSearch.TreeCursor = Ember.Object.extend().reopenClass
+TC = TreeSearch.TreeCursor = Ember.Object.extend().reopenClass
     
   # Fail gracefully when attempting to create cursor without a node
   create: (parameters = {}) ->
     return null unless parameters.node
     @_super.apply this, arguments
+
+  # @private
+  memoize: (name) -> 
+    ((key, value) -> 
+      if value then @_setIfTreeIsNotVolatile key, value
+      else  @_getIfTreeIsNotVolatile name
+    ).property().volatile()
 
 TreeSearch.TreeCursor.reopen Ember.Copyable, Ember.Freezable,
 
@@ -45,59 +44,59 @@ TreeSearch.TreeCursor.reopen Ember.Copyable, Ember.Freezable,
   # @readonly
   # @example `cursor.get 'parent' # ~> TreeCursor`
   # @type TreeCursor
-  parent: memoize 'parent'
+  parent: TC.memoize 'parent'
 
   # @readonly
   # @type Array (TreeCursor)
-  children: memoize 'children'
+  children: TC.memoize 'children'
 
   # @readonly
   # @type TreeCursor
-  firstChild: memoize 'firstChild'
+  firstChild: TC.memoize 'firstChild'
 
   # @readonly
   # @type TreeCursor
-  lastChild: memoize 'lastChild'
+  lastChild: TC.memoize 'lastChild'
 
   # @readonly
   # @type TreeCursor
-  rightSibling: memoize 'rightSibling'
+  rightSibling: TC.memoize 'rightSibling'
 
   # @readonly
   # @type TreeCursor
-  leftSibling: memoize 'leftSibling'
+  leftSibling: TC.memoize 'leftSibling'
 
   # @readonly
   # @type TreeCursor
-  rightmostSibling: memoize 'rightmostSibling'
+  rightmostSibling: TC.memoize 'rightmostSibling'
 
   # @readonly
   # @type TreeCursor
-  leftmostSibling: memoize 'leftmostSibling'
+  leftmostSibling: TC.memoize 'leftmostSibling'
 
   # @readonly
   # @type TreeCursor
-  successor: memoize 'successor'
+  successor: TC.memoize 'successor'
 
   # @readonly
   # @type TreeCursor
-  predecessor: memoize 'predecessor'
+  predecessor: TC.memoize 'predecessor'
   
   # @readonly
   # @type TreeCursor
-  successorAtSameDepth: memoize 'successorAtSameDepth'
+  successorAtSameDepth: TC.memoize 'successorAtSameDepth'
 
   # @readonly
   # @type TreeCursor
-  predecessorAtSameDepth: memoize 'predecessorAtSameDepth'
+  predecessorAtSameDepth: TC.memoize 'predecessorAtSameDepth'
 
   # @readonly
   # @type TreeCursor
-  leafSuccessor: memoize 'leafSuccessor'
+  leafSuccessor: TC.memoize 'leafSuccessor'
   
   # @readonly
   # @type TreeCursor
-  leafPredecessor: memoize 'leafPredecessor'
+  leafPredecessor: TC.memoize 'leafPredecessor'
 
   # By setting an arbitrary root, you can constrain the tree cursor
   # to a particular subtree. However, this is available only if it's not broken
@@ -105,7 +104,7 @@ TreeSearch.TreeCursor.reopen Ember.Copyable, Ember.Freezable,
   # TODO Every tree subclass must pass tests to make sure it implements 
   # features like this
   # @type TreeCursor
-  root: memoize 'root'
+  root: TC.memoize 'root'
     
   # @readonly
   isLeaf: (->
@@ -454,7 +453,7 @@ TreeSearch.TreeCursor.reopen Ember.Copyable, Ember.Freezable,
 
   # @private
   createParent: (properties) ->
-    return null if @get 'isRoot'
+    return null if this is @_getMemoized 'rot'
     @copy ['root'], properties
 
   # @private
@@ -512,12 +511,17 @@ TreeSearch.TreeCursor.reopen Ember.Copyable, Ember.Freezable,
     if @get 'isTreeVolatile'
       getter.call this
     else
-      key = '_saved_' + name
+      key = "_saved_#{key}"
       value = @get key
       value ?= do =>
         value = getter.call this
         @set key, value
         value
+
+  # Retrieves memoized property but does not attempt to call its getter
+  # if it doesn't exist
+  _getMemoized: (key) ->
+    @get "_saved_#{key}"
 
   # Set a specially memoized property (see above)
   _setIfTreeIsNotVolatile: (key, value) ->

@@ -3,20 +3,10 @@ var TreeSearch;
 window.TreeSearch = TreeSearch = Ember.Namespace.create();
 
 
-var memoize,
+var TC,
   __hasProp = {}.hasOwnProperty;
 
-memoize = function(name) {
-  return (function(key, value) {
-    if (value) {
-      return this._setIfTreeIsNotVolatile(key, value);
-    } else {
-      return this._getIfTreeIsNotVolatile(name);
-    }
-  }).property().volatile();
-};
-
-TreeSearch.TreeCursor = Ember.Object.extend().reopenClass({
+TC = TreeSearch.TreeCursor = Ember.Object.extend().reopenClass({
   create: function(parameters) {
     if (parameters == null) {
       parameters = {};
@@ -25,27 +15,36 @@ TreeSearch.TreeCursor = Ember.Object.extend().reopenClass({
       return null;
     }
     return this._super.apply(this, arguments);
+  },
+  memoize: function(name) {
+    return (function(key, value) {
+      if (value) {
+        return this._setIfTreeIsNotVolatile(key, value);
+      } else {
+        return this._getIfTreeIsNotVolatile(name);
+      }
+    }).property().volatile();
   }
 });
 
 TreeSearch.TreeCursor.reopen(Ember.Copyable, Ember.Freezable, {
   node: Ember.required(),
   isTreeVolatile: false,
-  parent: memoize('parent'),
-  children: memoize('children'),
-  firstChild: memoize('firstChild'),
-  lastChild: memoize('lastChild'),
-  rightSibling: memoize('rightSibling'),
-  leftSibling: memoize('leftSibling'),
-  rightmostSibling: memoize('rightmostSibling'),
-  leftmostSibling: memoize('leftmostSibling'),
-  successor: memoize('successor'),
-  predecessor: memoize('predecessor'),
-  successorAtSameDepth: memoize('successorAtSameDepth'),
-  predecessorAtSameDepth: memoize('predecessorAtSameDepth'),
-  leafSuccessor: memoize('leafSuccessor'),
-  leafPredecessor: memoize('leafPredecessor'),
-  root: memoize('root'),
+  parent: TC.memoize('parent'),
+  children: TC.memoize('children'),
+  firstChild: TC.memoize('firstChild'),
+  lastChild: TC.memoize('lastChild'),
+  rightSibling: TC.memoize('rightSibling'),
+  leftSibling: TC.memoize('leftSibling'),
+  rightmostSibling: TC.memoize('rightmostSibling'),
+  leftmostSibling: TC.memoize('leftmostSibling'),
+  successor: TC.memoize('successor'),
+  predecessor: TC.memoize('predecessor'),
+  successorAtSameDepth: TC.memoize('successorAtSameDepth'),
+  predecessorAtSameDepth: TC.memoize('predecessorAtSameDepth'),
+  leafSuccessor: TC.memoize('leafSuccessor'),
+  leafPredecessor: TC.memoize('leafPredecessor'),
+  root: TC.memoize('root'),
   isLeaf: (function() {
     return !this.get('firstChild');
   }).property().volatile(),
@@ -293,7 +292,7 @@ TreeSearch.TreeCursor.reopen(Ember.Copyable, Ember.Freezable, {
     return this.findLeafSuccessor('left');
   },
   createParent: function(properties) {
-    if (this.get('isRoot')) {
+    if (this === this._getMemoized('rot')) {
       return null;
     }
     return this.copy(['root'], properties);
@@ -354,7 +353,7 @@ TreeSearch.TreeCursor.reopen(Ember.Copyable, Ember.Freezable, {
     if (this.get('isTreeVolatile')) {
       return getter.call(this);
     } else {
-      key = '_saved_' + name;
+      key = "_saved_" + key;
       value = this.get(key);
       return value != null ? value : value = (function() {
         value = getter.call(_this);
@@ -362,6 +361,9 @@ TreeSearch.TreeCursor.reopen(Ember.Copyable, Ember.Freezable, {
         return value;
       })();
     }
+  },
+  _getMemoized: function(key) {
+    return this.get("_saved_" + key);
   },
   _setIfTreeIsNotVolatile: function(key, value) {
     return this.set("_saved_" + key, value);
