@@ -506,7 +506,7 @@ TreeSearch.Base = Ember.Object.extend().reopenClass({
   }
 });
 
-TreeSearch.Base.reopen(Ember.Evented, {
+TreeSearch.Base.reopen({
   initialNode: Ember.required(),
   shouldAcceptNode: function(node) {
     return true;
@@ -549,7 +549,7 @@ TreeSearch.Base.reopen(Ember.Evented, {
     return this.get('_treeCursor.node');
   },
   _visitNode: function(candidate) {
-    this.trigger('willEnterNode', candidate);
+    this.willEnterNode(candidate);
     if (this.shouldStopSearch(candidate)) {
       return true;
     }
@@ -559,7 +559,7 @@ TreeSearch.Base.reopen(Ember.Evented, {
         return true;
       }
     }
-    this.trigger('didEnterNode', candidate);
+    this.didEnterNode(candidate);
     return false;
   },
   _addToResult: function(node) {

@@ -22,7 +22,7 @@ TreeSearch.Base = Ember.Object.extend().reopenClass
     search = @create properties
     search._perform()
 
-TreeSearch.Base.reopen Ember.Evented,
+TreeSearch.Base.reopen
   
   # The search will begin with this node
   # @type object
@@ -83,12 +83,12 @@ TreeSearch.Base.reopen Ember.Evented,
     if @get 'shouldYieldSingleResult' then null else []
   ).property()
 
-  # Event triggered before the search iterates over a node
+  # Called before the search iterates over a node
   # @protected
   # @type Function
   willEnterNode: Ember.K()
 
-  # Event triggered after the search iterates over a node
+  # Called after the search iterates over a node
   # @protected
   # @type Function (Object ->)
   didEnterNode: Ember.K()
@@ -119,12 +119,12 @@ TreeSearch.Base.reopen Ember.Evented,
 
   # @returns yes if search should stop
   _visitNode: (candidate) ->
-    @trigger 'willEnterNode', candidate
+    @willEnterNode candidate
     return yes if @shouldStopSearch candidate
     if @shouldAcceptNode candidate
       @_addToResult candidate
       return yes if @get 'shouldYieldSingleResult'
-    @trigger 'didEnterNode', candidate
+    @didEnterNode candidate
     return no
 
   # @returns no if search should stop
