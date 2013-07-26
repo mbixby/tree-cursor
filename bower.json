@@ -1,6 +1,6 @@
 {
   "_comment": "Bower package manager configuration file",
-  "name": "dom-utilities",
+  "name": "tree-search",
   "version": "1.0.0",
   "main": "dist/tree_search.js",
   "dependencies": {

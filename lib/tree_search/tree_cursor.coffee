@@ -486,7 +486,7 @@ TreeSearch.TreeCursor.reopen Ember.Copyable, Ember.Freezable,
       allSiblings: @get 'allSiblings'
 
   # @private
-  createLeftSibling: ->
+  createLeftSibling: (properties) ->
     @copy 'root parent'.w(), Em.merge properties,
       indexInSiblings: (@get 'indexInSiblings') - 1
       someSiblings: @get 'someSiblings'

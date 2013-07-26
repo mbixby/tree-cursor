@@ -331,7 +331,7 @@ TreeSearch.TreeCursor.reopen(Ember.Copyable, Ember.Freezable, {
       allSiblings: this.get('allSiblings')
     }));
   },
-  createLeftSibling: function() {
+  createLeftSibling: function(properties) {
     return this.copy('root parent'.w(), Em.merge(properties, {
       indexInSiblings: (this.get('indexInSiblings')) - 1,
       someSiblings: this.get('someSiblings'),
