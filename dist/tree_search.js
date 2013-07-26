@@ -151,7 +151,7 @@ TreeSearch.TreeCursor.reopen(Ember.Copyable, Ember.Freezable, {
     }), sibling) : void 0;
   },
   updateMemoizedSiblings: function(opts) {
-    var hasAllSiblings, newSiblings, oppositeDirection, oppositeSibling, sibling, siblings;
+    var areAllSiblingsMemoized, newSiblings, sibling, siblings;
     siblings = this.get('someSiblings');
     sibling = opts.sibling;
     if (sibling) {
@@ -170,10 +170,9 @@ TreeSearch.TreeCursor.reopen(Ember.Copyable, Ember.Freezable, {
         return sibling.incrementProperty('indexInSiblings');
       }
     } else {
-      oppositeDirection = opts.direction === 'right' ? 'left' : 'right';
-      oppositeSibling = siblings.get(oppositeDirection === 'left' ? 'firstObject' : 'lastObject');
-      hasAllSiblings = !oppositeSibling.get("" + oppositeDirection + "Sibling");
-      if (hasAllSiblings) {
+      this.set("_didMemoize" + (opts.direction.capitalize()) + "mostSibling", true);
+      areAllSiblingsMemoized = (this.get('_didMemoizeRightmostSibling')) && (this.get('_didMemoizeLeftmostSibling'));
+      if (areAllSiblingsMemoized) {
         return this.set('allSiblings', siblings);
       }
     }

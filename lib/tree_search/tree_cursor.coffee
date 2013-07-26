@@ -301,12 +301,11 @@ TreeSearch.TreeCursor.reopen Ember.Copyable, Ember.Freezable,
         sibling.incrementProperty 'indexInSiblings'
 
     else
-      # If the last cursor in someSiblings doesn't have any next siblings,
-      # someSiblings contains *all* of our siblings
-      oppositeDirection = if opts.direction is 'right' then 'left' else 'right'
-      oppositeSibling = siblings.get if oppositeDirection is 'left' then 'firstObject' else 'lastObject'
-      hasAllSiblings = not oppositeSibling.get "#{oppositeDirection}Sibling"
-      if hasAllSiblings then @set 'allSiblings', siblings
+      # Set allSiblings
+      @set "_didMemoize#{opts.direction.capitalize()}mostSibling", yes
+      areAllSiblingsMemoized = (@get '_didMemoizeRightmostSibling') and 
+        (@get '_didMemoizeLeftmostSibling')
+      @set 'allSiblings', siblings if areAllSiblingsMemoized
 
   # @private
   findRightmostSibling: ->
