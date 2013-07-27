@@ -453,7 +453,7 @@ TreeSearch.TreeCursor.reopen Ember.Copyable, Ember.Freezable,
 
   # @private
   createParent: (properties) ->
-    return null if this is @_getMemoized 'rot'
+    return null if this is @_getMemoized 'root'
     @copy ['root'], properties
 
   # @private
@@ -511,7 +511,7 @@ TreeSearch.TreeCursor.reopen Ember.Copyable, Ember.Freezable,
     if @get 'isTreeVolatile'
       getter.call this
     else
-      key = "_saved_#{key}"
+      key = "_saved_#{name}"
       value = @get key
       value ?= do =>
         value = getter.call this

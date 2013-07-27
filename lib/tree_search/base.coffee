@@ -86,12 +86,12 @@ TreeSearch.Base.reopen
   # Called before the search iterates over a node
   # @protected
   # @type Function
-  willEnterNode: Ember.K()
+  willEnterNode: Ember.K
 
   # Called after the search iterates over a node
   # @protected
   # @type Function (Object ->)
-  didEnterNode: Ember.K()
+  didEnterNode: Ember.K
 
   # Tree cursor tells us how to walk through the tree, from node to node 
   # (how to get node's sibling, child or parent)
@@ -106,7 +106,7 @@ TreeSearch.Base.reopen
   _perform: ->
     @_pickAlgorithm()
     if @get 'shouldIgnoreInitialNode'
-      @set '_treeCursor', @_getNextCursor()
+      @set '_cursor', @_getNextCursor()
 
     while candidate = @_getNextNode()
       shouldStop = @_visitNode candidate
@@ -114,8 +114,8 @@ TreeSearch.Base.reopen
     @get 'result'
 
   _getNextNode: ->
-    @set '_treeCursor', @_getNextCursor()
-    @get '_treeCursor.node'
+    @set '_cursor', @_getNextCursor()
+    @get '_cursor.node'
 
   # @returns yes if search should stop
   _visitNode: (candidate) ->
@@ -144,7 +144,7 @@ TreeSearch.Base.reopen
 
   # Cursor pointing to current node
   # (dynamic; changes when search is being performed)
-  _treeCursor: (->
+  _cursor: (->
     (@get 'cursorClass').create
       node: @get 'initialNode'
   ).property()
