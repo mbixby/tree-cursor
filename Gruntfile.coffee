@@ -56,10 +56,10 @@ module.exports = (grunt) ->
         dest: "dist/<%= name %>.js"
       testComponents:
         src: [".tmp/test/components.js"]
-        dest: ".tmp/test_components.js"
+        dest: ".tmp/test/combined-components.js"
       test:
         src: [".tmp/test/spec.js"]
-        dest: ".tmp/test_spec.js"
+        dest: ".tmp/test/combined-spec.js"
 
     copy:
       test:
@@ -67,7 +67,7 @@ module.exports = (grunt) ->
           expand: yes
           cwd: "."
           dest: ".tmp"
-          src: ["components/mocha/mocha.css"]
+          src: ["components/mocha/mocha.css", "test/*.html" ]
         ]
 
     watch:
@@ -92,8 +92,7 @@ module.exports = (grunt) ->
         hostname: "localhost"
       test:
         options:
-          middleware: grunt.middleware (connect) ->
-            [connect.livereloadFolders(), ".tmp", "test"]
+          middleware: grunt.middleware -> [".tmp", "test"]
 
     open:
       server:
@@ -102,10 +101,13 @@ module.exports = (grunt) ->
     mocha:
       all:
         run: yes
-        urls: ["http://localhost:<%= connect.options.port %>/index.html"]
+        src: [ '.tmp/test/index.html' ]
+
 
 
   # Tasks
         
   grunt.registerTask "default", ["clean", "bower", "coffee:dist", "neuter:dist"]
-  grunt.registerTask "test", ["clean:server", "bower", "coffee", "neuter:testComponents", "neuter:test", "copy:test",  "connect:test", "watch"]
+  grunt.registerTask "prepareForTesting", ["clean:server", "bower", "coffee", "neuter:testComponents", "neuter:test", "copy:test"]
+  grunt.registerTask "test", ["prepareForTesting",  "connect:test", "watch"]
+  grunt.registerTask "test:shell", ["prepareForTesting",  "connect:test", "mocha"]
