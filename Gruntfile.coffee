@@ -27,21 +27,17 @@ module.exports = (grunt) ->
       options:
         bare: yes
       dist:
-        files: [
-          expand: yes
-          cwd: "lib"
-          src: "**/*.coffee"
-          dest: ".tmp/lib"
-          ext: ".js"
-        ]
+        expand: yes
+        cwd: "lib"
+        src: "**/*.coffee"
+        dest: ".tmp/lib"
+        ext: ".js"
       test:
-        files: [
-          expand: yes
-          cwd: "test"
-          src: "**/*.coffee"
-          dest: ".tmp/test"
-          ext: ".js"
-        ]
+        expand: yes
+        cwd: "test"
+        src: "**/*.coffee"
+        dest: ".tmp/test"
+        ext: ".js"
 
     jshint:
       all: [".tmp/lib/**/*.js", ".tmp/test/**/*.js"]
@@ -72,19 +68,14 @@ module.exports = (grunt) ->
 
     watch:
       options:
-        livereload: yes
+        livereload: "<%= connect.options.port %>"
+        # Because we're changing config in grunt.event.on('watch') below,
+        # we can't spawn processes
+        spawn: no
 
-      coffee:
-        files: ["lib/**/*.coffee"]
-        tasks: ["coffee:dist"]
-
-      coffeeTest:
-        files: ["test/**/*.coffee"]
-        tasks: ["coffee:test"]
-
-      neuterTest:
-        files: [".tmp/lib/**/*.js", ".tmp/test/**/*.js"]
-        tasks: ["neuter:test"]
+      test:
+        files: ["{lib, test}/**/*.coffee"]
+        tasks: ["coffee", "neuter:test"]
 
     connect:
       options:
@@ -92,7 +83,7 @@ module.exports = (grunt) ->
         hostname: "localhost"
       test:
         options:
-          middleware: grunt.middleware -> [".tmp", "test"]
+          middleware: grunt.middleware -> [".tmp", ".tmp/test"]
 
     open:
       server:
@@ -103,11 +94,18 @@ module.exports = (grunt) ->
         run: yes
         src: [ '.tmp/test/index.html' ]
 
+  # Compile only changed files
+  grunt.event.on 'watch', (action, filepath) ->
+    for target in ["dist", "test"] when filepath.match /.coffee/
+      cwd = grunt.config "coffee.#{target}.cwd"
+      filepath = filepath.replace "#{cwd}/", ""
+      console.log "-- #{filepath} -- #{target}"
+      grunt.config "coffee.#{target}.src", filepath
 
 
   # Tasks
         
   grunt.registerTask "default", ["clean", "bower", "coffee:dist", "neuter:dist"]
-  grunt.registerTask "prepareForTesting", ["clean:server", "bower", "coffee", "neuter:testComponents", "neuter:test", "copy:test"]
-  grunt.registerTask "test", ["prepareForTesting",  "connect:test", "watch"]
-  grunt.registerTask "test:shell", ["prepareForTesting",  "connect:test", "mocha"]
+  grunt.registerTask "prepareForTesting", ["clean:server", "bower", "coffee", "neuter:testComponents", "neuter:test", "copy:test", "connect:test"]
+  grunt.registerTask "test", ["prepareForTesting", "watch:test"]
+  grunt.registerTask "test:shell", ["prepareForTesting", "mocha"]

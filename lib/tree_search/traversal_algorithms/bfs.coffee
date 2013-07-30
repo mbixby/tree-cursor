@@ -6,18 +6,24 @@ TreeSearch.BFS = Ember.Mixin.create
     next = @get "_cursor" unless @get '_current'
     next ?= @get "_current.#{direction}SuccessorAtSameDepth"
 
+    # Move one level down
     unless next
-      firstCursorAtDepth = @getWithDefault "_firstCursorAtCurrentDepth",
-        @get "_current"
-      next = firstCursorAtDepth.get if direction is "left" then "lastChild" else "firstChild"
-      @set "_firstCursorAtCurrentDepth", next
+      # Determine first non-leaf node at current depth (let's call 
+      # it firstCursorAtDepth or "_carriageReturn") and continue
+      # at its first child
+      oppositeDirection = if direction is "left" then "Right" else "Left"
+      next = @get "_carriageReturn.firstChildFrom#{oppositeDirection}"
+      @set "_carriageReturn", null
       @incrementProperty "depth"
+
+    unless @get "_carriageReturn"
+      @set "_carriageReturn", if next?.get 'isLeaf' then null else next
 
     @set '_current', next
     next
 
-# BFSWithQueue preloads all children even if they won't be visited 
-# while searching
+# BFSWithQueue preloads some nodes even if they are not visited 
+# when searching. This is generally not desired in dynamic trees
 TreeSearch.BFSWithQueue = Ember.Mixin.create
   
   _getNextCursor: ->

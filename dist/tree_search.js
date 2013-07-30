@@ -427,7 +427,7 @@ TreeSearch.TreeCursor.reopen(Ember.Copyable, Ember.Freezable, {
 
 TreeSearch.BFS = Ember.Mixin.create({
   _getNextCursor: function() {
-    var direction, firstCursorAtDepth, next;
+    var direction, next, oppositeDirection;
     direction = this.get("direction");
     if (!this.get('_current')) {
       next = this.get("_cursor");
@@ -436,10 +436,13 @@ TreeSearch.BFS = Ember.Mixin.create({
       next = this.get("_current." + direction + "SuccessorAtSameDepth");
     }
     if (!next) {
-      firstCursorAtDepth = this.getWithDefault("_firstCursorAtCurrentDepth", this.get("_current"));
-      next = firstCursorAtDepth.get(direction === "left" ? "lastChild" : "firstChild");
-      this.set("_firstCursorAtCurrentDepth", next);
+      oppositeDirection = direction === "left" ? "Right" : "Left";
+      next = this.get("_carriageReturn.firstChildFrom" + oppositeDirection);
+      this.set("_carriageReturn", null);
       this.incrementProperty("depth");
+    }
+    if (!this.get("_carriageReturn")) {
+      this.set("_carriageReturn", (next != null ? next.get('isLeaf') : void 0) ? null : next);
     }
     this.set('_current', next);
     return next;

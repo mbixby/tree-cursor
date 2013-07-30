@@ -4,8 +4,7 @@
   "version": "1.0.0",
   "main": "dist/tree_search.js",
   "dependencies": {
-    "ember": "~1.0.0-rc.6",
-    "js-tree-cursor": "git@github.com:mbixby/js-tree-cursor.git"
+    "ember": "~1.0.0-rc.6"
   },
   "devDependencies": {
     "mocha": "~1.12.0",

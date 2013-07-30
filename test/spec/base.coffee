@@ -1,3 +1,5 @@
+# TODO Test unbalanced trees
+
 describe "Base", ->
   tree = TreeNode.create ascii: """
            A
