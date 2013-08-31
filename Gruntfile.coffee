@@ -74,7 +74,7 @@ module.exports = (grunt) ->
         spawn: no
 
       test:
-        files: ["{lib, test}/**/*.coffee"]
+        files: ["{lib,test}/**/*.coffee"]
         tasks: ["coffee", "neuter:test"]
 
     connect:
@@ -102,9 +102,7 @@ module.exports = (grunt) ->
       console.log "-- #{filepath} -- #{target}"
       grunt.config "coffee.#{target}.src", filepath
 
-
-  # Tasks
-        
+  # Tasks 
   grunt.registerTask "default", ["clean", "bower", "coffee:dist", "neuter:dist"]
   grunt.registerTask "prepareForTesting", ["clean:server", "bower", "coffee", "neuter:testComponents", "neuter:test", "copy:test", "connect:test"]
   grunt.registerTask "test", ["prepareForTesting", "watch:test"]

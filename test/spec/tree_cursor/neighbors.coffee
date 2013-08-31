@@ -1,30 +1,32 @@
-describe "TreeCursor", ->
-  tree = TreeNode.create ascii: """
+describe "TreeCursor (neighbors and successors)", ->
+  tree = Helpers.TreeNode.create ascii: """
            A
          /   \
        B       C
-     /  \     / \
+     /  \     /  \
     D    E   F    G
   """
 
-  examples = TreeTestExamples.create [
+  examples = Helpers.TreeTestExamples.create [
     "node                   of A is A",
     "firstChild             of A is B",
     "firstChild             of B is D",
     "parent                 of B is A",
+    "parent                 of E is B",
     "rightSibling           of B is C",
     "leftSibling            of C is B",
     "rightmostSibling       of B is C",
     "leftmostSibling        of C is B",
     "lastChild              of A is C",
+    "root                   of E is A",
     "successor              of A is B",
     "successor              of B is D",
     "successor              of D is E",
     "successor              of E is C",
     "successor              of C is F",
     "predecessor            of E is D",
-    "predecessor            of F is B",
     "predecessor            of C is G",
+    "predecessor            of F is B",
     "successorAtSameDepth   of B is C",
     "successorAtSameDepth   of E is F",
     "predecessorAtSameDepth of C is B",
@@ -32,16 +34,14 @@ describe "TreeCursor", ->
     "leafSuccessor          of E is F",
     "leafSuccessor          of B is D",
     "leafPredecessor        of F is E",
-    "leafPredecessor        of C is G",
-    "root                   of E is A"
+    "leafPredecessor        of C is G"
   ]
 
-  rootCursor = ArrayTreeCursor.create { node: tree }
-  cursors = {}
+  cursors = null
 
   beforeEach ->
     cursors = (Ember.Object.extend
-      "A": (-> rootCursor ).property()
+      "A": (-> Helpers.ArrayTreeCursor.create node: tree ).property()
       "B": (-> @get 'A.firstChild' ).property()
       "C": (-> @get 'A.lastChild' ).property()
       "D": (-> @get 'B.firstChild' ).property()
@@ -49,6 +49,23 @@ describe "TreeCursor", ->
       "F": (-> @get 'C.firstChild' ).property()
       "G": (-> @get 'C.lastChild' ).property()
     ).create()
+
+  describe "non-volatile cursor", ->
+    it "should memoize preceding parent", ->
+      cache = (cursors.get "B")._cachedOrDefinedProperty "parent"
+      expect(cache.get "name").to.equal "A"
+
+    it "should memoize 'null' if preceding sibling doesn't exist", ->
+      cache = (cursors.get "B")._cachedOrDefinedProperty "leftSibling"
+      expect(cache).to.equal null
+
+    it "should not memoize non-existent value", ->
+      cache = (cursors.get "A")._cachedOrDefinedProperty "parent"
+      expect(cache).to.equal undefined
+
+    it "should memoize preceding sibling", ->
+      cache = (cursors.get "C")._cachedOrDefinedProperty "leftSibling"
+      expect(cache).to.equal cursors.get 'B'
 
   examples.each (method, examples) ->
     describe "##{method}", ->
@@ -63,8 +80,7 @@ describe "TreeCursor", ->
   describe "#children", ->
     it "should find children", ->
       children = cursors.get "B.children"
-      names = children.map (b) -> b.get 'name'
-      expect(names).to.have.members ["D", "E"]
+      expect(getNamesOfNodes children).to.have.members ["D", "E"]
 
   describe "#successor", ->
     it "should not find successor of rightmost node at lowest depth", ->
@@ -74,15 +90,10 @@ describe "TreeCursor", ->
     it "should not find predecessor of leftmost node at lowest depth", ->
       expect(cursors.get "D.predecessor").to.not.exist
 
-  describe "#findUpwardSuccessor", ->
+  describe "#upwardSuccessor", ->
     it "should find upwardSuccessor", ->
-      [cursor, _] = (cursors.get "D").findUpwardSuccessorAndItsDepth()
-      expect(cursor.get "name").to.equal "C"
+      expect(cursors.get "D.upwardSuccessor.name").to.equal "C"
 
-  describe "#findUpwardPredecessor", ->
+  describe "#upwardPredecessor", ->
     it "should find upwardPredecessor", ->
-      [cursor, _] = (cursors.get "G").findUpwardPredecessorAndItsDepth()
-      expect(cursor.get "name").to.equal "B"
-
-
-
+      expect(cursors.get "G.upwardPredecessor.name").to.equal "B"

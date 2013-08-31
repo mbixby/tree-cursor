@@ -1,12 +1,12 @@
 # TreeNode
-# Represents a fully saturated binary tree
+# Represents perfect (fully saturated) binary tree
 
-TreeNode = Ember.Object.extend
+Helpers.TreeNode = Ember.Object.extend
 
   # @type {String} ASCII art of the tree
   ascii: null
 
-  # Nodes stored in an array
+  # Tree stored in a matrix
   tree: (->
     string = (@get 'ascii').replace /[\/\n]/g, ''
     string = string.replace /[ ]*/, ''
@@ -14,7 +14,8 @@ TreeNode = Ember.Object.extend
     matrix = @splitToLevels array
   ).property()
 
-  # Index of the node in @tree
+  # Tuple [level, positionInLevel] denoting position 
+  # of the node in this.tree
   index: [0, 0]
 
   # Number of levels
@@ -34,3 +35,6 @@ TreeNode = Ember.Object.extend
     numberOfNodesAtLevel = (Math.pow 2, x for x in [0...numberOfLevels])
     numberOfNodesAtLevel.map (count) ->
       array.shift() while count--
+
+  equals: (node) ->
+    ([this, node].mapProperty 'name').reduce (a, b) -> a is b

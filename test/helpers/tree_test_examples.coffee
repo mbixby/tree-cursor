@@ -1,9 +1,9 @@
-TreeTestExamples = Ember.Object.extend().reopenClass
+Helpers.TreeTestExamples = Ember.Object.extend().reopenClass
   
   create: (examples) ->
     @_super { examples: examples }
 
-TreeTestExamples.reopen
+Helpers.TreeTestExamples.reopen
   
   # e.g. `["node of A is A"]`
   examples: []

@@ -1,7 +1,7 @@
 # TODO Test unbalanced trees
 
 describe "Base", ->
-  tree = TreeNode.create ascii: """
+  tree = Helpers.TreeNode.create ascii: """
            A
          /   \
        B       C
@@ -13,7 +13,7 @@ describe "Base", ->
 
   beforeEach ->
     Search = TreeSearch.Base.extend
-      cursorClass: ArrayTreeCursor
+      cursorClass: Helpers.ArrayTreeCursor
       initialNode: tree
       method: TreeSearch.BFS
       shouldIgnoreInitialNode: no
