@@ -663,79 +663,64 @@ TreeSearch.TreeCursor.reopen({
 });
 
 
-TreeSearch.BFS = Ember.Mixin.create({
-  _getNextCursor: function() {
-    var direction, next, oppositeDirection;
-    direction = this.get("direction");
-    if (!this.get('_current')) {
-      next = this.get("_cursor");
+TreeSearch.BFS = {
+  getNextCursor: function(cursor, direction, initialCursor) {
+    var next;
+    if (!cursor) {
+      next = initialCursor;
     }
     if (next == null) {
-      next = this.get("_current." + direction + "SuccessorAtSameDepth");
+      next = cursor.get("" + direction + "SuccessorAtSameDepth");
     }
-    if (!next) {
-      oppositeDirection = direction === "left" ? "Right" : "Left";
-      next = this.get("_carriageReturn.firstChildFrom" + oppositeDirection);
-      this.set("_carriageReturn", null);
-      this.incrementProperty("depth");
-    }
-    if (!this.get("_carriageReturn")) {
-      this.set("_carriageReturn", (next != null ? next.get('isLeaf') : void 0) ? null : next);
-    }
-    this.set('_current', next);
-    return next;
+    return next != null ? next : next = (function() {
+      var leftmost, _ref;
+      leftmost = (_ref = cursor.get("" + (direction.opposite()) + "mostSibling")) != null ? _ref : cursor;
+      return leftmost != null ? leftmost.get("firstChildFrom" + (direction.opposite().capitalize())) : void 0;
+    })();
   }
-});
+};
 
-TreeSearch.BFSWithQueue = Ember.Mixin.create({
-  _getNextCursor: function() {
-    var child, children, depth, direction, next, queue, _i, _len, _ref, _ref1;
-    queue = this.getWithDefault('_queue', [[this.get('_cursor', 0)]]);
-    if (queue[0]) {
-      _ref = queue.shift(), next = _ref[0], depth = _ref[1];
-    }
-    direction = this.get('_shouldWalkLeft') ? -1 : 1;
-    children = (_ref1 = next != null ? next.get('children') : void 0) != null ? _ref1 : [];
-    for ((direction > 0 ? (_i = 0, _len = children.length) : _i = children.length - 1); direction > 0 ? _i < _len : _i >= 0; _i += direction) {
+TreeSearch.BFSWithQueue = {
+  getNextCursor: function(cursor, direction, initialCursor, meta) {
+    var child, children, directionStep, next, queue, _i, _len, _ref;
+    queue = meta._queue != null ? meta._queue : meta._queue = [initialCursor];
+    next = queue.shift();
+    directionStep = direction === 'left' ? -1 : 1;
+    children = (_ref = next != null ? next.get('children') : void 0) != null ? _ref : [];
+    for ((directionStep > 0 ? (_i = 0, _len = children.length) : _i = children.length - 1); directionStep > 0 ? _i < _len : _i >= 0; _i += directionStep) {
       child = children[_i];
-      queue.push([child, depth + 1]);
+      queue.push(child);
     }
-    this.set('_queue', queue);
-    this.set('depth', depth);
     return next;
   }
-});
+};
 
 
-TreeSearch.DFS = Ember.Mixin.create({
-  _getNextCursor: function() {
-    var child, children, depth, direction, next, queue, _i, _len, _ref, _ref1;
-    queue = this.getWithDefault('_queue', [[this.get('_cursor', 0)]]);
-    if (queue[0]) {
-      _ref = queue.pop(), next = _ref[0], depth = _ref[1];
-    }
-    direction = this.get('_shouldWalkLeft') ? -1 : 1;
-    children = (_ref1 = next != null ? next.get('children') : void 0) != null ? _ref1 : [];
-    for ((direction > 0 ? (_i = 0, _len = children.length) : _i = children.length - 1); direction > 0 ? _i < _len : _i >= 0; _i += direction) {
+TreeSearch.DFS = {
+  getNextCursor: function(cursor, direction, initialCursor, meta) {
+    var child, children, directionStep, next, queue, _i, _len, _ref;
+    queue = meta._queue != null ? meta._queue : meta._queue = [initialCursor];
+    next = queue.pop();
+    directionStep = direction === 'left' ? -1 : 1;
+    children = (_ref = next != null ? next.get('children') : void 0) != null ? _ref : [];
+    for ((directionStep > 0 ? (_i = 0, _len = children.length) : _i = children.length - 1); directionStep > 0 ? _i < _len : _i >= 0; _i += directionStep) {
       child = children[_i];
-      queue.push([child, depth + 1]);
+      queue.push(child);
     }
-    this.set('_queue', queue);
-    this.set('depth', depth);
     return next;
   }
-});
+};
 
 
-TreeSearch.LeavesOnlySearch = Ember.Mixin.create({
-  _getNextCursor: function() {
-    var direction, next, _ref;
-    direction = this.get('direction');
-    next = !this.get('_current') ? (_ref = (this.get('_cursor.isLeaf') ? this.get('_cursor') : void 0)) != null ? _ref : this.get("_cursor." + direction + "LeafSuccessor") : this.get("_current." + direction + "LeafSuccessor");
-    this.set('_current', next);
-    return next;
+TreeSearch.LeavesOnlySearch = {
+  getNextCursor: function(cursor, direction, initialCursor) {
+    if ((!cursor) && initialCursor.get('isLeaf')) {
+      return initialCursor;
+    } else {
+      return (cursor != null ? cursor : initialCursor).get("" + direction + "LeafSuccessor");
+    }
   }
-});
+};
 
 
 TreeSearch.Base = Ember.Object.extend().reopenClass({
@@ -775,9 +760,8 @@ TreeSearch.Base.reopen({
   cursorClass: Ember.required(),
   _perform: function() {
     var candidate, shouldStop;
-    this._pickAlgorithm();
     if (this.get('shouldIgnoreInitialNode')) {
-      this.set('_cursor', this._getNextCursor());
+      this._getNextNode();
     }
     while (candidate = this._getNextNode()) {
       shouldStop = this._visitNode(candidate);
@@ -788,8 +772,15 @@ TreeSearch.Base.reopen({
     return this.get('result');
   },
   _getNextNode: function() {
-    this.set('_cursor', this._getNextCursor());
-    return this.get('_cursor.node');
+    var args, cursor, _ref,
+      _this = this;
+    args = ['_cursor', 'direction', '_initialCursor', '_searchMeta'];
+    args = args.map(function(key) {
+      return _this.get(key);
+    });
+    cursor = (_ref = this.get('method')).getNextCursor.apply(_ref, args);
+    this.set('_cursor', cursor);
+    return cursor != null ? cursor.node : void 0;
   },
   _visitNode: function(candidate) {
     this.willEnterNode(candidate);
@@ -812,16 +803,14 @@ TreeSearch.Base.reopen({
       return (this.get('result')).push(node);
     }
   },
-  _pickAlgorithm: function() {
-    var algorithm;
-    algorithm = this.get('method');
-    return algorithm.apply(this);
-  },
-  _getNextCursor: null,
-  _cursor: (function() {
+  _cursor: null,
+  _initialCursor: (function() {
     return (this.get('cursorClass')).create({
       node: this.get('initialNode')
     });
+  }).property(),
+  _searchMeta: (function() {
+    return {};
   }).property(),
   _shouldWalkLeft: (function() {
     return (this.get('direction')) === 'left';
@@ -868,9 +857,7 @@ TreeSearch.Trimming.reopen({
     var boundary, root, _ref;
     boundary = (_ref = this.get('leftBoundary')) != null ? _ref : this.get('rightBoundary');
     root = boundary.get('root');
-    return root.constructor.create({
-      node: root.node
-    });
+    return root.copy([]);
   }).property(),
   _isCursorOutsideBoundaries: function(cursor) {
     return (cursor.isLeftOrBottomOfCursor(this.get('leftBoundary'))) || (cursor.isRightOrBottomOfCursor(this.get('rightBoundary')));

@@ -1,7 +1,6 @@
 getNamesOfNodesInTree = (cursor) ->
   nodes = getAllNodesInTree cursor
-  names = nodes.mapProperty 'name'
-  names.join ' '
+  (getNamesOfNodes nodes).join ' '
   
 getAllNodesInTree = (cursor) ->
   successorsOf = (cursor) ->
@@ -11,3 +10,6 @@ getAllNodesInTree = (cursor) ->
 
 getNamesOfNodes = (nodes) -> 
   nodes.mapProperty 'name'
+
+getJoinedNamesOfNodes = (nodes) -> 
+  (getNamesOfNodes nodes).join ' '

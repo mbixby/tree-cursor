@@ -1,12 +1,7 @@
-TreeSearch.LeavesOnlySearch = Ember.Mixin.create
+TreeSearch.LeavesOnlySearch =
 
-  _getNextCursor: ->
-    direction = @get 'direction'
-    next = unless @get '_current'
-      (@get '_cursor' if @get '_cursor.isLeaf') ?
-      @get "_cursor.#{direction}LeafSuccessor"
+  getNextCursor: (cursor, direction, initialCursor) ->
+    if (not cursor) and initialCursor.get 'isLeaf'
+      initialCursor
     else
-      @get "_current.#{direction}LeafSuccessor"
-
-    @set '_current', next
-    next
+      (cursor ? initialCursor).get "#{direction}LeafSuccessor"

@@ -56,7 +56,7 @@ TreeSearch.Trimming.reopen
   _root: (->
     boundary = (@get 'leftBoundary') ? @get 'rightBoundary'
     root = boundary.get 'root'
-    root.constructor.create node: root.node
+    root.copy []
   ).property()
   
   _isCursorOutsideBoundaries: (cursor) ->

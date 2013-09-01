@@ -8,12 +8,10 @@ require 'tree_search/traversal_algorithms/*'
 # 
 # To use TreeSearch, you have to extend it first with your custom TreeCursor 
 # implementation to define how to walk in your tree (from node to node).
-# For examples on how to do this, see tests or other components 
-# using TreeSearch.
+# For examples, consult tests or other components that use TreeSearch.
 # 
 # Note that:
-# * you can't change search parameters and constraints after you 
-#   performed the search
+# * you shouldn't reuse the search instance after it's performed
 # * consumers of TreeSearch will be exposed to tree nodes, not cursors
 
 TreeSearch.Base = Ember.Object.extend().reopenClass
@@ -23,20 +21,26 @@ TreeSearch.Base = Ember.Object.extend().reopenClass
     search._perform()
 
 TreeSearch.Base.reopen
-  
+
   # The search will begin with this node
   # @type object
   initialNode: Ember.required()
-
-  # Returns yes when the tested node should be yielded to result
-  # Don't forget to call @_super() when providing your implementation.
-  # @protected
+  
+  # If the function resolves to true, the tested node will be yielded 
+  # to result. By default, every node in the tree is yielded.
+  # 
+  # Don't forget to call `@_super()` in your implementation.
+  # @example `shouldAcceptNode: (node) -> 
+  #   (@_super node) and node.shouldYield()`
+  # 
+  # @public
   # @type Function (Object -> bool)
   shouldAcceptNode: (node) -> yes
 
-  # Search method
+  # Search algorithm
+  # @public
+  # @type TreeSearch.(BFS | DFS | LeavesOnlySearch)
   # LeavesOnlySearch traverses only through leaf nodes
-  # @type Ember.Mixin (TreeSearch.(BFS | DFS | LeavesOnlySearch))
   method: TreeSearch.BFS
 
   # If yes, the search will be stopped when a single result
@@ -50,15 +54,16 @@ TreeSearch.Base.reopen
   # @type string 'right' | 'left'
   direction: 'right'
 
-  # If the function returns yes, the search halts and returns so far
+  # If the function resolves to true, the search halts and returns so far
   # collected result.
-  # The current node that will be passed to this method will never be collected
-  # in search result.
+  # The current node passed into this function will never be collected 
+  # to the search result.
   # 
-  # Don't forget to call @_super() when providing your implementation.
-  # @example `shouldAcceptNode: (node) -> @_super() or node.isntRelevant()`
+  # Don't forget to call `@_super()` in your implementation.
+  # @example `shouldStopSearch: (node) -> 
+  #    (@_super node) or node.shallNotPass()`
   # 
-  # @protected
+  # @public
   # @type Function (Object -> bool)
   shouldStopSearch: (node) -> no
 
@@ -78,6 +83,8 @@ TreeSearch.Base.reopen
   # Collected search result
   # Automatically returned when calling this.createAndPerform()
   # TODO Enable array observers
+  # @public
+  # @readonly
   # @type Array
   result: (->
     if @get 'shouldYieldSingleResult' then null else []
@@ -104,18 +111,20 @@ TreeSearch.Base.reopen
   # TODO Performance optimizations
   # TODO Should we test every candidate with @shouldStopSearch?
   _perform: ->
-    @_pickAlgorithm()
     if @get 'shouldIgnoreInitialNode'
-      @set '_cursor', @_getNextCursor()
-
+      @_getNextNode()
     while candidate = @_getNextNode()
       shouldStop = @_visitNode candidate
       break if shouldStop
     @get 'result'
 
+  # TODO Publicize search algorithm
   _getNextNode: ->
-    @set '_cursor', @_getNextCursor()
-    @get '_cursor.node'
+    args = ['_cursor', 'direction', '_initialCursor', '_searchMeta']
+    args = args.map (key) => @get key
+    cursor = (@get 'method').getNextCursor args...
+    @set '_cursor', cursor
+    cursor?.node
 
   # @returns yes if search should stop
   _visitNode: (candidate) ->
@@ -134,20 +143,17 @@ TreeSearch.Base.reopen
     else
       (@get 'result').push node
 
-  _pickAlgorithm: ->
-    algorithm = @get 'method'
-    algorithm.apply this
+  # Cursor pointing to the current node
+  _cursor: null
 
-  # Implemented by the class (mixin) that provides search algorithm
-  # @see this.method
-  _getNextCursor: null
-
-  # Cursor pointing to current node
-  # (dynamic; changes when search is being performed)
-  _cursor: (->
+  _initialCursor: (->
     (@get 'cursorClass').create
       node: @get 'initialNode'
   ).property()
+
+  # Meta variables for search (e.g. queues)
+  # TODO Review
+  _searchMeta: (-> {} ).property()
 
   # Alias for @direction with boolean type
   # Yes if left, no if right
