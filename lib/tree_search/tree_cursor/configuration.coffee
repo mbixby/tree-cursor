@@ -5,7 +5,8 @@
 # of adjacent nodes. Please mind the type signature.
 # See TreeCursor class in DOMUtilities component for an example.
 # 
-# TODO These should be defined primarily on a node (?)
+# Note: These are defined on TreeCursor and not on Node as to not
+# pollute your Node class with navigation logic.
 
 TreeSearch.TreeCursor.reopen
   
