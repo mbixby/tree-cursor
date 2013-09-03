@@ -18,7 +18,7 @@ TreeSearch.Base = Ember.Object.extend().reopenClass
   
   createAndPerform: (properties = {}) ->
     search = @create properties
-    search._perform()
+    search.perform()
 
 TreeSearch.Base.reopen
 
@@ -41,7 +41,7 @@ TreeSearch.Base.reopen
   # @public
   # @type TreeSearch.(BFS | DFS | LeavesOnlySearch)
   # LeavesOnlySearch traverses only through leaf nodes
-  method: TreeSearch.BFS
+  method: TreeSearch.BFSWithQueue
 
   # If yes, the search will be stopped when a single result
   # has been found
@@ -108,9 +108,7 @@ TreeSearch.Base.reopen
 
   # Performs the search and returns result
   # In case of null, you can check the @error property
-  # TODO Performance optimizations
-  # TODO Should we test every candidate with @shouldStopSearch?
-  _perform: ->
+  perform: ->
     if @get 'shouldIgnoreInitialNode'
       @_getNextNode()
     while candidate = @_getNextNode()

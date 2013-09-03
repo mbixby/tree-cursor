@@ -730,7 +730,7 @@ TreeSearch.Base = Ember.Object.extend().reopenClass({
       properties = {};
     }
     search = this.create(properties);
-    return search._perform();
+    return search.perform();
   }
 });
 
@@ -739,7 +739,7 @@ TreeSearch.Base.reopen({
   shouldAcceptNode: function(node) {
     return true;
   },
-  method: TreeSearch.BFS,
+  method: TreeSearch.BFSWithQueue,
   shouldYieldSingleResult: false,
   shouldIgnoreInitialNode: true,
   direction: 'right',
@@ -758,7 +758,7 @@ TreeSearch.Base.reopen({
   willEnterNode: Ember.K,
   didEnterNode: Ember.K,
   cursorClass: Ember.required(),
-  _perform: function() {
+  perform: function() {
     var candidate, shouldStop;
     if (this.get('shouldIgnoreInitialNode')) {
       this._getNextNode();
@@ -815,6 +815,26 @@ TreeSearch.Base.reopen({
   _shouldWalkLeft: (function() {
     return (this.get('direction')) === 'left';
   }).property('direction')
+});
+
+
+TreeSearch.Traversable = Ember.Mixin.create({
+  cursor: (function() {
+    return this.cursorClass.create({
+      node: this
+    });
+  }).property(),
+  cursorClass: TreeSearch.TreeCursor.Base,
+  unknownProperty: function(key) {
+    return this.get("_cursor." + key + ".node");
+  },
+  setUnknownProperty: function(key, value) {
+    var cursor;
+    cursor = value.get('_cursor');
+    if (cursor) {
+      return this.set("_cursor." + key, cursor);
+    }
+  }
 });
 
 
