@@ -830,7 +830,7 @@ TreeSearch.Traversable = Ember.Mixin.create({
     value = this.get("cursor." + key);
     if (value instanceof TreeSearch.TreeCursor) {
       return value.get('node');
-    } else if (value[0] && value[0] instanceof TreeSearch.TreeCursor) {
+    } else if ((value != null ? value[0] : void 0) && (value != null ? value[0] : void 0) instanceof TreeSearch.TreeCursor) {
       return value.mapProperty('node');
     } else {
       return value;
