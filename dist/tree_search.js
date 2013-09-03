@@ -820,19 +820,29 @@ TreeSearch.Base.reopen({
 
 TreeSearch.Traversable = Ember.Mixin.create({
   cursor: (function() {
-    return this.cursorClass.create({
+    return (this.get('cursorClass')).create({
       node: this
     });
   }).property(),
-  cursorClass: TreeSearch.TreeCursor.Base,
+  cursorClass: TreeSearch.TreeCursor,
   unknownProperty: function(key) {
-    return this.get("_cursor." + key + ".node");
+    var value;
+    value = this.get("cursor." + key);
+    if (value instanceof TreeSearch.TreeCursor) {
+      return value.get('node');
+    } else if (value[0] && value[0] instanceof TreeSearch.TreeCursor) {
+      return value.mapProperty('node');
+    } else {
+      return value;
+    }
   },
   setUnknownProperty: function(key, value) {
     var cursor;
-    cursor = value.get('_cursor');
-    if (cursor) {
-      return this.set("_cursor." + key, cursor);
+    if (value.get != null) {
+      cursor = value.get('cursor');
+    }
+    if (cursor instanceof TreeSearch.TreeCursor) {
+      return this.set("cursor." + key, cursor);
     }
   }
 });

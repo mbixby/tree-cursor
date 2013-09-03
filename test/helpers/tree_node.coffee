@@ -1,8 +1,8 @@
 # TreeNode
 # Represents perfect (fully saturated) binary tree
 
-Helpers.TreeNode = Ember.Object.extend
-
+Helpers.TreeNode = Ember.Object.extend TreeSearch.Traversable,
+  
   # @type {String} ASCII art of the tree
   ascii: null
 
@@ -35,6 +35,10 @@ Helpers.TreeNode = Ember.Object.extend
     numberOfNodesAtLevel = (Math.pow 2, x for x in [0...numberOfLevels])
     numberOfNodesAtLevel.map (count) ->
       array.shift() while count--
+
+  cursorClass: (->
+    Helpers.ArrayTreeCursor
+  ).property()
 
   equals: (node) ->
     ([this, node].mapProperty 'name').reduce (a, b) -> a is b
