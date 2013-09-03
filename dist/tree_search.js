@@ -440,11 +440,11 @@ TreeSearch.TreeCursor.reopen({
 
 
 TreeSearch.TreeCursor.reopen({
-  isLeftOrBottomOfCursor: function(cursor) {
-    return ['left', 'bottom'].contains(this.determinePositionAgainstCursor(cursor));
+  isRightOrTopOfCursor: function(cursor) {
+    return ['right', 'top'].contains(this.determinePositionAgainstCursor(cursor));
   },
-  isRightOrBottomOfCursor: function(cursor) {
-    return ['right', 'bottom'].contains(this.determinePositionAgainstCursor(cursor));
+  isLeftOrTopOfCursor: function(cursor) {
+    return ['left', 'top'].contains(this.determinePositionAgainstCursor(cursor));
   },
   determinePositionAgainstCursor: function(cursor) {
     var a, ancestors, b;
@@ -847,7 +847,7 @@ TreeSearch.Trimming.reopen({
     var _this = this;
     return (this.get('_root')).addValidation({
       validate: function(cursor) {
-        return !_this._isCursorOutsideBoundaries(cursor);
+        return _this._isCursorInsideBoundaries(cursor);
       },
       shouldSkipInvalidCursors: true,
       error: "Node has been trimmed away. " + (this.toString())
@@ -859,12 +859,15 @@ TreeSearch.Trimming.reopen({
     root = boundary.get('root');
     return root.copy([]);
   }).property(),
-  _isCursorOutsideBoundaries: function(cursor) {
-    return (cursor.isLeftOrBottomOfCursor(this.get('leftBoundary'))) || (cursor.isRightOrBottomOfCursor(this.get('rightBoundary')));
+  _isCursorInsideBoundaries: function(cursor) {
+    var positionAgainstLeftBoundary, positionAgainstRightBoundary;
+    positionAgainstLeftBoundary = cursor.determinePositionAgainstCursor(this.get('leftBoundary'));
+    positionAgainstRightBoundary = cursor.determinePositionAgainstCursor(this.get('rightBoundary'));
+    return (('right' === positionAgainstLeftBoundary) && ('left' === positionAgainstRightBoundary)) || (['top', void 0].contains(positionAgainstLeftBoundary)) || (['top', void 0].contains(positionAgainstRightBoundary));
   },
   _extractCursorFrom: function(nodeOrCursor) {
     var node, _ref;
-    if (TreeSearch.TreeCursor.detectInstance(nodeOrCursor)) {
+    if (nodeOrCursor instanceof TreeSearch.TreeCursor) {
       return nodeOrCursor;
     } else {
       node = nodeOrCursor;

@@ -6,14 +6,14 @@ TreeSearch.TreeCursor.reopen
   # @see #determinePositionAgainstCursor
   # @type Function (TreeCursor -> Boolean)
   # @public
-  isLeftOrBottomOfCursor: (cursor) -> 
-    ['left', 'bottom'].contains @determinePositionAgainstCursor cursor
+  isRightOrTopOfCursor: (cursor) -> 
+    ['right', 'top'].contains @determinePositionAgainstCursor cursor
 
   # @see #determinePositionAgainstCursor
   # @type Function (TreeCursor -> Boolean)
   # @public
-  isRightOrBottomOfCursor: (cursor) -> 
-    ['right', 'bottom'].contains @determinePositionAgainstCursor cursor
+  isLeftOrTopOfCursor: (cursor) -> 
+    ['left', 'top'].contains @determinePositionAgainstCursor cursor
 
   # @type Function (TreeCursor -> String ('left' | 'right' | 'top' | 
   #   | 'bottom' | undefined))
@@ -21,10 +21,10 @@ TreeSearch.TreeCursor.reopen
   # 
   # Important:
   # If a cursor is on the same branch, 'top' or 'bottom' is returned.
-  # Undefined return value can mean that cursors are the same or not pointing 
-  # to the same tree.
+  # Undefined return value can mean that cursors are the same or that they
+  # are not pointing to the same tree.
   # 
-  # TODO Make more explicit, Optimize (memoize branches and ancestors)
+  # TODO Optimize (memoize branches and ancestors)
   # @public
   determinePositionAgainstCursor: (cursor) ->
     if (not cursor) or @equals cursor

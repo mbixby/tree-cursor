@@ -8,8 +8,13 @@ describe "Trimming", ->
   """
 
   trimming = null
-  trimmedTree = null
   cursors = null
+
+  trimOutsidesOf = (leftBoundary, rightBoundary) ->
+    trimming = TreeSearch.Trimming.create
+      everythingLeftOfBranch: cursors.get leftBoundary
+      everythingRightOfBranch: cursors.get rightBoundary
+    trimming.perform()
 
   beforeEach ->
     cursors = (Ember.Object.extend
@@ -22,23 +27,26 @@ describe "Trimming", ->
       "G": (-> @get 'C.lastChild' ).property()
     ).create()
 
-    trimming = TreeSearch.Trimming.create
-      everythingLeftOfBranch: cursors.get 'E'
-      everythingRightOfBranch: cursors.get 'C'
-    trimmedTree = trimming.perform()
-
   describe "#trim", ->
     it "should copy and trim the tree", ->
+      trimmedTree = trimOutsidesOf 'E', 'C'
       expect(getNamesOfNodesInTree trimmedTree).to.equal 'A B E C'
 
     it "should not affect the original tree", ->
+      trimmedTree = trimOutsidesOf 'E', 'C'
       expect(getNamesOfNodesInTree cursors.get 'A').to.equal 'A B D E C F G'
 
-  describe "#_isCursorOutsideBoundaries", ->
-    it "should find nodes outside defined boundaries", ->
+    it "should trim tree with boundaries on the same branch", ->
+      trimmedTree = trimOutsidesOf 'C', 'G'
+      expect(getNamesOfNodesInTree trimmedTree).to.equal 'A C G'
+
+  describe "#_isCursorInsideBoundaries", ->
+    it "should find nodes inside defined boundaries", ->
+      trimmedTree = trimOutsidesOf 'E', 'C'
       original = getAllNodesInTree cursors.get 'A'
       trimmed = _.compact original.map (cursor) -> 
-        cursor if trimming._isCursorOutsideBoundaries cursor
+        cursor if trimming._isCursorInsideBoundaries cursor
+
       trimmed = trimmed.mapProperty 'name'
       trimmed = trimmed.sort().join ' '
-      expect(trimmed).to.equal "D F G"
+      expect(trimmed).to.equal "A B C E"

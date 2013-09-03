@@ -48,7 +48,7 @@ TreeSearch.Trimming.reopen
   # Trimming is lazy thanks to TreeCursor#shouldRejectCursor
   perform: ->
     (@get '_root').addValidation
-      validate: (cursor) => not @_isCursorOutsideBoundaries cursor
+      validate: (cursor) => @_isCursorInsideBoundaries cursor
       shouldSkipInvalidCursors: yes
       error: "Node has been trimmed away. #{@toString()}"
 
@@ -59,12 +59,18 @@ TreeSearch.Trimming.reopen
     root.copy []
   ).property()
   
-  _isCursorOutsideBoundaries: (cursor) ->
-    (cursor.isLeftOrBottomOfCursor @get 'leftBoundary') or
-    (cursor.isRightOrBottomOfCursor @get 'rightBoundary')
+  # TODO Clean up
+  _isCursorInsideBoundaries: (cursor) ->
+    positionAgainstLeftBoundary = cursor.determinePositionAgainstCursor @get 'leftBoundary'
+    positionAgainstRightBoundary = cursor.determinePositionAgainstCursor @get 'rightBoundary'
+    (('right' is positionAgainstLeftBoundary) and
+      ('left' is positionAgainstRightBoundary)) or
+        (['top', undefined].contains positionAgainstLeftBoundary) or
+          (['top', undefined].contains positionAgainstRightBoundary)
+
 
   _extractCursorFrom: (nodeOrCursor) ->
-    if TreeSearch.TreeCursor.detectInstance nodeOrCursor
+    if nodeOrCursor instanceof TreeSearch.TreeCursor
       nodeOrCursor
     else
       node = nodeOrCursor
