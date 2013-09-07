@@ -440,21 +440,24 @@ TreeSearch.TreeCursor.reopen({
 
 
 TreeSearch.TreeCursor.reopen({
-  isRightOrTopOfCursor: function(cursor) {
-    return ['right', 'top'].contains(this.determinePositionAgainstCursor(cursor));
+  isRightOfCursor: function(cursor) {
+    return 'right' === this.determineHorizontalPositionAgainstCursor(cursor);
   },
-  isLeftOrTopOfCursor: function(cursor) {
-    return ['left', 'top'].contains(this.determinePositionAgainstCursor(cursor));
+  isLeftOfCursor: function(cursor) {
+    return 'left' === this.determineHorizontalPositionAgainstCursor(cursor);
   },
   determinePositionAgainstCursor: function(cursor) {
+    var position;
+    position = this.determineHorizontalPositionAgainstCursor(cursor);
+    return position != null ? position : position = this.determinePositionAgainstMemberOfBranch(cursor);
+  },
+  determineHorizontalPositionAgainstCursor: function(cursor) {
     var a, ancestors, b;
     if ((!cursor) || this.equals(cursor)) {
       return void 0;
     } else if (ancestors = this.findClosestSiblingAncestorsWithCursor(cursor)) {
       a = ancestors[0], b = ancestors[1];
       return a != null ? a.determinePositionAgainstSibling(b) : void 0;
-    } else {
-      return this.determinePositionAgainstMemberOfBranch(cursor);
     }
   },
   determinePositionAgainstSibling: function(sibling) {
@@ -890,10 +893,7 @@ TreeSearch.Trimming.reopen({
     return root.copy([]);
   }).property(),
   _isCursorInsideBoundaries: function(cursor) {
-    var positionAgainstLeftBoundary, positionAgainstRightBoundary;
-    positionAgainstLeftBoundary = cursor.determinePositionAgainstCursor(this.get('leftBoundary'));
-    positionAgainstRightBoundary = cursor.determinePositionAgainstCursor(this.get('rightBoundary'));
-    return (('right' === positionAgainstLeftBoundary) && ('left' === positionAgainstRightBoundary)) || (['top', void 0].contains(positionAgainstLeftBoundary)) || (['top', void 0].contains(positionAgainstRightBoundary));
+    return (!cursor.isLeftOfCursor(this.get('leftBoundary'))) && (!cursor.isRightOfCursor(this.get('rightBoundary')));
   },
   _extractCursorFrom: function(nodeOrCursor) {
     var node, _ref;

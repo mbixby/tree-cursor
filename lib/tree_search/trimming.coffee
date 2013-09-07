@@ -4,17 +4,21 @@
 # 
 # By specifying two boundaries, a tree can be narrowed down to a subtree:
 # 
-#            A                       A
-#          /   \        E, C       /   \
-#        B       C       ~>      B       C     
-#      /  \     / \               \      
-#     D    E   F    G              E   
+#            A                       A 
+#          /   \        E, C       /   \ 
+#        B       C       ~>      B       C      
+#      /  \     / \               \     / \
+#     D    E   F    G              E   F    G
 #     
-# Given the tree shown above (left) and nodes E and C, the narrowed down 
-# subtree would consist only of nodes A, B, C and E (shown on the right).
+# Given a left boundary node M and right boundary node N (nodes may equal),
+# trimmed tree would consist of every node X when all of the following is true:
 # 
-# Other methods of trimming are currently not supported.
-# Note that trimming is a lazy operation (see 
+# * given B is a branch of M, either X is on branch B or X is a descendant of Y, where Y is a right sibling of a member of branch B
+# * given B is a branch of N, either X is on branch B or X is a descendant of Y, where Y is a left sibling of a member of branch B
+# 
+# Informally, everything left of node M and right of node N is trimmed.
+# 
+# Note that trimming is performed lazily (see 
 # TreeCursor#withRejectionCondition).
 
 TreeSearch.Trimming = Ember.Object.extend().reopenClass
@@ -61,13 +65,8 @@ TreeSearch.Trimming.reopen
   
   # TODO Clean up
   _isCursorInsideBoundaries: (cursor) ->
-    positionAgainstLeftBoundary = cursor.determinePositionAgainstCursor @get 'leftBoundary'
-    positionAgainstRightBoundary = cursor.determinePositionAgainstCursor @get 'rightBoundary'
-    (('right' is positionAgainstLeftBoundary) and
-      ('left' is positionAgainstRightBoundary)) or
-        (['top', undefined].contains positionAgainstLeftBoundary) or
-          (['top', undefined].contains positionAgainstRightBoundary)
-
+    (not cursor.isLeftOfCursor @get 'leftBoundary') and
+    (not cursor.isRightOfCursor @get 'rightBoundary')
 
   _extractCursorFrom: (nodeOrCursor) ->
     if nodeOrCursor instanceof TreeSearch.TreeCursor
