@@ -70,4 +70,5 @@ publish
 ####################
 temp
 components
+bower_components
 app/components

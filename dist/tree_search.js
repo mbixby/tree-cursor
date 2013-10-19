@@ -3,6 +3,31 @@ var TreeSearch;
 window.TreeSearch = TreeSearch = Ember.Namespace.create();
 
 
+var _Debug;
+
+_Debug = {
+  bench: function(fnOrLabel, fn) {
+    var delta, label, ret, timer;
+    label = fn ? fnOrLabel : 'bench';
+    fn = fn != null ? fn : fnOrLabel;
+    timer = performance.now();
+    ret = fn();
+    delta = performance.now() - timer;
+    if (window[label] == null) {
+      window[label] = 0;
+    }
+    window[label] += delta;
+    return ret;
+  }
+};
+
+setTimeout((function() {
+  if (window.bench) {
+    return console.log(window.bench);
+  }
+}), 1000);
+
+
 if (Ember.EXTEND_PROTOTYPES || Ember.EXTEND_PROTOTYPES.String) {
   String.prototype.stripPrefix = function(prefix) {
     var regex;
@@ -36,59 +61,78 @@ if (Ember.EXTEND_PROTOTYPES || Ember.EXTEND_PROTOTYPES.String) {
 var __slice = [].slice;
 
 TreeSearch.TreeCursor = Ember.Object.extend().reopenClass({
-  create: function(parameters) {
-    var cursor;
-    if (parameters == null) {
-      parameters = {};
+  create: function(properties) {
+    var cursor,
+      _this = this;
+    if (properties == null) {
+      properties = {};
     }
-    if (!parameters.node) {
+    if (!properties.node) {
       return null;
     }
-    cursor = this._super.apply(this, arguments);
-    cursor._warnAboutMissingMethods();
+    cursor = (function() {
+      cursor = _this._getFromSharedPool(properties);
+      return cursor != null ? cursor.setProperties(properties) : void 0;
+    })();
+    if (cursor == null) {
+      cursor = (function() {
+        cursor = _this._super(properties);
+        return _this._saveToSharedPool(cursor);
+      })();
+    }
     return cursor.get('_nearestValidCursor');
+  },
+  _getFromSharedPool: function(properties) {
+    var _ref;
+    return (_ref = properties.cursorPool) != null ? _ref.get(properties.node) : void 0;
+  },
+  _saveToSharedPool: function(cursor) {
+    (cursor.get('cursorPool')).set(cursor.node, cursor);
+    return cursor;
   }
 });
 
 TreeSearch.TreeCursor.reopen(Ember.Copyable, Ember.Freezable, {
   node: Ember.required(),
   isVolatile: false,
-  equals: function(cursor) {
-    var _this = this;
-    if (!cursor) {
-      return false;
-    }
-    return (this === cursor) || (function() {
-      var a, b, isEqualsMethodDefined, _ref;
-      _ref = [_this.get('node'), cursor.get('node')], a = _ref[0], b = _ref[1];
-      isEqualsMethodDefined = ('object' === typeof a) && (a.equals != null);
-      if (isEqualsMethodDefined) {
-        return a.equals(b);
-      } else {
-        return a === b;
-      }
-    })();
-  },
-  copy: function(carryOver, otherProperties) {
-    var carriedOver, properties, specificToCopying;
+  copy: function(carryOver, properties) {
+    var carryOverProperties;
     if (carryOver == null) {
       carryOver = this.treewideProperties;
     }
-    if (otherProperties == null) {
-      otherProperties = {};
+    if (properties == null) {
+      properties = {};
     }
-    carriedOver = this._memoizedPropertiesForKeys(carryOver);
-    specificToCopying = {
-      node: this.node
-    };
-    properties = [specificToCopying, carriedOver, otherProperties];
-    properties = properties.reduce((function(a, b) {
-      return Ember.merge(a, b);
-    }), {});
-    return this.constructor.create(properties);
+    carryOverProperties = this._memoizedPropertiesForKeys(carryOver.concat(['node']));
+    return this.constructor.create(Ember.merge(carryOverProperties, properties));
   },
-  treewideProperties: ['root', 'isVolatile', '_validators'],
-  _init: function() {
+  copyIntoTree: function(tree, properties) {
+    if (properties == null) {
+      properties = {};
+    }
+    return tree.copy(this.treewideProperties, Ember.merge(properties, {
+      node: this.node
+    }));
+  },
+  copyIntoNewTree: function(properties, constructor) {
+    if (properties == null) {
+      properties = {};
+    }
+    if (constructor == null) {
+      constructor = this.constructor;
+    }
+    return constructor.create(Ember.merge({
+      _validators: (this.get('_validators')).copy(),
+      isVolatile: this.isVolatile,
+      node: this.node
+    }, properties));
+  },
+  concatenatedProperties: ['treewideProperties'],
+  treewideProperties: ['cursorPool', 'root', 'isVolatile', '_validators', 'originalTree'],
+  cursorPool: (function() {
+    return Ember.Map.create();
+  }).property(),
+  init: function() {
     var _ref;
     (_ref = this._super).call.apply(_ref, [this].concat(__slice.call(arguments)));
     return this._translateChildNodesAccessor();
@@ -117,19 +161,22 @@ TreeSearch.TreeCursor.reopen({
   _translateChildNodesAccessor: function() {
     if (this.findChildNodes) {
       if (this.findFirstChildNode == null) {
-        this.findFirstChildNode = function() {
-          return this.get('_childNodes.firstObject');
-        };
+        this.findFirstChildNode = this._firstObjectInChildNodes;
       }
       if (this.findRightSiblingNode == null) {
-        this.findRightSiblingNode = function() {
-          return (this.get('parent._childNodes')).objectAt(this.get('_indexInSiblingNodes' + 1));
-        };
+        this.findRightSiblingNode = this._rightSiblingInChildNodes;
       }
-      return this.findLeftSiblingNode != null ? this.findLeftSiblingNode : this.findLeftSiblingNode = function() {
-        return (this.get('parent._childNodes')).objectAt(this.get('_indexInSiblingNodes' - 1));
-      };
+      return this.findLeftSiblingNode != null ? this.findLeftSiblingNode : this.findLeftSiblingNode = this._leftSiblingInChildNodes;
     }
+  },
+  _firstObjectInChildNodes: function() {
+    return this.get('_childNodes.firstObject');
+  },
+  _rightSiblingInChildNodes: function() {
+    return (this.get('parent._childNodes')).objectAt(this.get('_indexInSiblingNodes' + 1));
+  },
+  _leftSiblingInChildNodes: function() {
+    return (this.get('parent._childNodes')).objectAt(this.get('_indexInSiblingNodes' - 1));
   },
   _childNodes: (function() {
     return this.findChildNodes();
@@ -165,7 +212,7 @@ TreeSearch.TreeCursor.reopen({
       var ancestorA, ancestorB, commonAncestor, shouldStop;
       commonAncestor = _arg[0], shouldStop = _arg[1];
       ancestorA = _arg1[0], ancestorB = _arg1[1];
-      if ((!shouldStop) && (ancestorA != null ? ancestorA.equals(ancestorB) : void 0)) {
+      if ((!shouldStop) && ancestorA === ancestorB) {
         return [ancestorA, false];
       } else {
         return [commonAncestor, shouldStop = true];
@@ -176,7 +223,7 @@ TreeSearch.TreeCursor.reopen({
     var candidate, _i, _len;
     for (_i = 0, _len = branch.length; _i < _len; _i++) {
       candidate = branch[_i];
-      if (this.equals(candidate.get('parent'))) {
+      if (this === candidate.get('parent')) {
         return candidate;
       }
     }
@@ -384,7 +431,7 @@ TreeSearch.TreeCursor.reopen({
     cursorSpecific: true
   }),
   isRoot: (function() {
-    return this === this.get('root');
+    return !this.get('parent');
   }).property('root').meta({
     cursorSpecific: true
   }),
@@ -410,14 +457,10 @@ TreeSearch.TreeCursor.reopen({
       validReplacement: 'parent'
     }));
   },
-  _createChild: function(properties) {
+  _createFirstChild: function(properties) {
     return this.copy(this.treewideProperties, Em.merge(properties, {
       parent: this,
-      validReplacement: this._validReplacementForNode()
-    }));
-  },
-  _createFirstChild: function(properties) {
-    return this._createChild(Em.merge(properties, {
+      validReplacement: this._validReplacementForNode(),
       leftSibling: null
     }));
   },
@@ -453,7 +496,7 @@ TreeSearch.TreeCursor.reopen({
   },
   determineHorizontalPositionAgainstCursor: function(cursor) {
     var a, ancestors, b;
-    if ((!cursor) || this.equals(cursor)) {
+    if ((!cursor) || this === cursor) {
       return void 0;
     } else if (ancestors = this.findClosestSiblingAncestorsWithCursor(cursor)) {
       a = ancestors[0], b = ancestors[1];
@@ -469,7 +512,7 @@ TreeSearch.TreeCursor.reopen({
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       direction = _ref[_i];
       while (candidate = (candidate != null ? candidate : this).get("" + (direction.opposite()) + "Sibling")) {
-        if (candidate.equals(sibling)) {
+        if (candidate === sibling) {
           return direction;
         }
       }
@@ -483,7 +526,7 @@ TreeSearch.TreeCursor.reopen({
     }
     _ref = [this, cursor].mapProperty('branch'), branchA = _ref[0], branchB = _ref[1];
     ancestor = this.findClosestCommonAncestorWithCursor(cursor);
-    if (!((this.equals(ancestor)) || cursor.equals(ancestor))) {
+    if (!((this === ancestor) || cursor === ancestor)) {
       return void 0;
     }
     if (branchA.length < branchB.length) {
@@ -598,17 +641,25 @@ TreeSearch.TreeCursor.reopen({
 TreeSearch.TreeCursor.Validator = Ember.Object.extend({
   error: void 0,
   validate: void 0,
-  shouldSkipInvalidCursors: false
+  isTreewideValidation: false
 });
 
 
 TreeSearch.TreeCursor.reopen({
-  addValidation: function(parameters) {
-    return this.addValidator(TreeSearch.TreeCursor.Validator.create(parameters));
+  copyWithNewValidation: function(validationParameters, properties, constructor) {
+    var validator;
+    validator = TreeSearch.TreeCursor.Validator.create(validationParameters);
+    return this.copyWithNewValidator(validator, properties, constructor);
   },
-  addValidator: function(validator) {
-    (this.get('_validators')).push(validator);
-    return this;
+  copyWithNewValidator: function(validator, properties, constructor) {
+    if (properties == null) {
+      properties = {};
+    }
+    properties = Ember.merge(properties, {
+      _validators: (this.get('_validators')).copy().add(validator),
+      originalTree: this
+    });
+    return this.copyIntoNewTree(properties, constructor);
   },
   validReplacement: void 0,
   _nearestValidCursor: (function() {
@@ -616,10 +667,10 @@ TreeSearch.TreeCursor.reopen({
     failed = this.get('_firstFailedValidator');
     if (!failed) {
       return this;
-    } else if (failed.get('shouldSkipInvalidCursors')) {
-      return this.get('_extractedValidReplacement');
-    } else {
+    } else if (failed.get('isTreewideValidation')) {
       return null;
+    } else {
+      return this.get('_extractedValidReplacement');
     }
   }).property(),
   _extractedValidReplacement: (function() {
@@ -631,43 +682,36 @@ TreeSearch.TreeCursor.reopen({
       return accessor != null ? accessor.apply(this, []) : void 0;
     }
   }).property('validReplacement'),
+  validations: (function() {
+    return _.zipObject((this.get('_validators')).map(function(validator) {
+      var identifier, result, _ref;
+      identifier = (_ref = validator.identifier) != null ? _ref : Ember.guidFor(validator);
+      result = null;
+      return [identifier, result];
+    }));
+  }).property('_validators'),
   _validators: (function() {
-    return [this._validateExistenceOfNode];
+    return Ember.Set.create();
   }).property(),
-  _validateExistenceOfNode: TreeSearch.TreeCursor.Validator.create({
-    validate: function(cursor) {
-      return (cursor.node !== void 0) && cursor.node !== null;
-    },
-    shouldSkipInvalidCursors: false,
-    error: "Node does not exist"
-  }),
   _firstFailedValidator: (function() {
     var validator, _i, _len, _ref;
     _ref = this.get('_validators');
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       validator = _ref[_i];
-      if (!validator.validate(this)) {
+      if (!validator.validate(this.get('twinFromOriginalTree'))) {
         return validator;
       }
     }
   }).property(),
-  _warnAboutMissingMethods: function() {
-    var doesNodeDefineEqualsMethod, node;
-    if (this.constructor._didWarnBefore) {
-      return;
-    }
-    node = this.get('node');
-    doesNodeDefineEqualsMethod = ('object' !== typeof node) || (('object' === typeof node) && ((node != null ? node.equals : void 0) != null));
-    Ember.warn("You have not defined #equals method on the node prototype. Please see documentation for TreeCursor#equals for more information. – " + (this.constructor.toString()), doesNodeDefineEqualsMethod);
-    if (!doesNodeDefineEqualsMethod) {
-      return this.constructor._didWarnBefore = true;
-    }
-  }
+  twinFromOriginalTree: (function() {
+    return this.copyIntoTree(this.originalTree);
+  }).property(),
+  originalTree: void 0
 });
 
 
-TreeSearch.BFS = {
-  getNextCursor: function(cursor, direction, initialCursor) {
+TreeSearch.BFS = Ember.Object.extend().reopenClass({
+  getNextCursor: function(cursor, direction, initialCursor, meta) {
     var next;
     if (!cursor) {
       next = initialCursor;
@@ -676,14 +720,15 @@ TreeSearch.BFS = {
       next = cursor.get("" + direction + "SuccessorAtSameDepth");
     }
     return next != null ? next : next = (function() {
-      var leftmost, _ref;
-      leftmost = (_ref = cursor.get("" + (direction.opposite()) + "mostSibling")) != null ? _ref : cursor;
-      return leftmost != null ? leftmost.get("firstChildFrom" + (direction.opposite().capitalize())) : void 0;
+      if (meta.leftmost == null) {
+        meta.leftmost = initialCursor;
+      }
+      return meta.leftmost = meta.leftmost.get("firstChildFrom" + (direction.opposite().capitalize()));
     })();
   }
-};
+});
 
-TreeSearch.BFSWithQueue = {
+TreeSearch.BFSWithQueue = Ember.Object.extend().reopenClass({
   getNextCursor: function(cursor, direction, initialCursor, meta) {
     var child, children, directionStep, next, queue, _i, _len, _ref;
     queue = meta._queue != null ? meta._queue : meta._queue = [initialCursor];
@@ -696,10 +741,20 @@ TreeSearch.BFSWithQueue = {
     }
     return next;
   }
-};
+});
 
 
-TreeSearch.DFS = {
+TreeSearch.DFS = Ember.Object.extend().reopenClass({
+  getNextCursor: function(cursor, direction, initialCursor, meta) {
+    var next;
+    if (!cursor) {
+      next = initialCursor;
+    }
+    return next != null ? next : next = cursor.get("" + direction + "Successor");
+  }
+});
+
+TreeSearch.DFSWithQueue = Ember.Object.extend().reopenClass({
   getNextCursor: function(cursor, direction, initialCursor, meta) {
     var child, children, directionStep, next, queue, _i, _len, _ref;
     queue = meta._queue != null ? meta._queue : meta._queue = [initialCursor];
@@ -712,18 +767,7 @@ TreeSearch.DFS = {
     }
     return next;
   }
-};
-
-
-TreeSearch.LeavesOnlySearch = {
-  getNextCursor: function(cursor, direction, initialCursor) {
-    if ((!cursor) && initialCursor.get('isLeaf')) {
-      return initialCursor;
-    } else {
-      return (cursor != null ? cursor : initialCursor).get("" + direction + "LeafSuccessor");
-    }
-  }
-};
+});
 
 
 TreeSearch.Base = Ember.Object.extend().reopenClass({
@@ -760,14 +804,17 @@ TreeSearch.Base.reopen({
   }).property(),
   willEnterNode: Ember.K,
   didEnterNode: Ember.K,
+  currentNode: void 0,
+  previousNode: void 0,
   cursorClass: Ember.required(),
   perform: function() {
-    var candidate, shouldStop;
+    var shouldStop;
     if (this.get('shouldIgnoreInitialNode')) {
       this._getNextNode();
     }
-    while (candidate = this._getNextNode()) {
-      shouldStop = this._visitNode(candidate);
+    this.previousNode = this.currentNode;
+    while (this.currentNode = this._getNextNode()) {
+      shouldStop = this._visitNode(this.currentNode);
       if (shouldStop) {
         break;
       }
@@ -777,7 +824,7 @@ TreeSearch.Base.reopen({
   _getNextNode: function() {
     var args, cursor, _ref,
       _this = this;
-    args = ['_cursor', 'direction', '_initialCursor', '_searchMeta'];
+    args = ['_cursor', 'direction', 'initialCursor', '_searchMeta'];
     args = args.map(function(key) {
       return _this.get(key);
     });
@@ -807,7 +854,7 @@ TreeSearch.Base.reopen({
     }
   },
   _cursor: null,
-  _initialCursor: (function() {
+  initialCursor: (function() {
     return (this.get('cursorClass')).create({
       node: this.get('initialNode')
     });
@@ -841,7 +888,7 @@ TreeSearch.Traversable = Ember.Mixin.create({
   },
   setUnknownProperty: function(key, value) {
     var cursor;
-    if (value.get != null) {
+    if ((value != null ? value.get : void 0) != null) {
       cursor = value.get('cursor');
     }
     if (cursor instanceof TreeSearch.TreeCursor) {
@@ -860,48 +907,49 @@ TreeSearch.Trimming = Ember.Object.extend().reopenClass({
 });
 
 TreeSearch.Trimming.reopen({
-  leftBoundary: (function(_, newValue, cachedValue) {
-    if (arguments.length === 1) {
-      return cachedValue;
-    } else {
-      return this._extractCursorFrom(newValue);
-    }
-  }).property(),
+  leftBoundary: void 0,
   everythingLeftOfBranch: Ember.computed.alias('leftBoundary'),
-  rightBoundary: (function(_, newValue, cachedValue) {
-    if (arguments.length === 1) {
-      return cachedValue;
-    } else {
-      return this._extractCursorFrom(newValue);
-    }
-  }).property(),
+  rightBoundary: void 0,
   everythingRightOfBranch: Ember.computed.alias('rightBoundary'),
   perform: function() {
+    var root;
+    root = (this.get('leftBoundary.root')).copyIntoNewTree({}, this.get('_cursorClass'));
+    return root.copyWithNewValidator(this.get('_validator'));
+  },
+  _validator: (function() {
     var _this = this;
-    return (this.get('_root')).addValidation({
+    return TreeSearch.TreeCursor.Validator.create({
       validate: function(cursor) {
         return _this._isCursorInsideBoundaries(cursor);
       },
       shouldSkipInvalidCursors: true,
       error: "Node has been trimmed away. " + (this.toString())
     });
-  },
-  _root: (function() {
-    var boundary, root, _ref;
-    boundary = (_ref = this.get('leftBoundary')) != null ? _ref : this.get('rightBoundary');
-    root = boundary.get('root');
-    return root.copy([]);
   }).property(),
   _isCursorInsideBoundaries: function(cursor) {
-    return (!cursor.isLeftOfCursor(this.get('leftBoundary'))) && (!cursor.isRightOfCursor(this.get('rightBoundary')));
+    return (cursor.get('_isInsideOfLeftBoundary')) && cursor.get('_isInsideOfRightBoundary');
   },
-  _extractCursorFrom: function(nodeOrCursor) {
-    var node, _ref;
-    if (nodeOrCursor instanceof TreeSearch.TreeCursor) {
-      return nodeOrCursor;
-    } else {
-      node = nodeOrCursor;
-      return (_ref = node.get('cursor')) != null ? _ref : node.cursor;
-    }
-  }
+  _cursorClass: (function() {
+    var trimming;
+    trimming = this;
+    return (this.get('leftBoundary')).constructor.extend({
+      _trimming: trimming,
+      treewideProperties: ['_trimming', '_leftBoundary', '_rightBoundary'],
+      _leftBoundary: (function() {
+        return (this.get('_trimming.leftBoundary')).copyIntoTree(this);
+      }).property(),
+      _rightBoundary: (function() {
+        return (this.get('_trimming.rightBoundary')).copyIntoTree(this);
+      }).property(),
+      _isInsideOfLeftBoundary: (function() {
+        return this._isInsideOfBoundary('left');
+      }).property('leftSuccessor._isInsideOfLeftBoundary'),
+      _isInsideOfRightBoundary: (function() {
+        return this._isInsideOfBoundary('right');
+      }).property('rightSuccessor._isInsideOfRightBoundary'),
+      _isInsideOfBoundary: function(direction) {
+        return ((this.get("_" + direction + "Boundary.branch")).contains(this)) || (this.get("" + direction + "Successor._isInsideOf" + (direction.capitalize()) + "Boundary"));
+      }
+    });
+  }).property()
 });

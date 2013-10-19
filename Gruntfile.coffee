@@ -61,9 +61,13 @@ module.exports = (grunt) ->
       test:
         files: [
           expand: yes
-          cwd: "."
+          cwd: "./bower_components"
+          dest: ".tmp/components"
+          src: ["mocha/mocha.css"]
+        ,
+          expand: yes
           dest: ".tmp"
-          src: ["components/mocha/mocha.css", "test/*.html" ]
+          src: ["test/*.html"]
         ]
 
     watch:

@@ -9,6 +9,9 @@
   "devDependencies": {
     "mocha": "~1.12.0",
     "chai": "~1.7.2",
+    "chai-fuzzy": "git@github.com:elliotf/chai-fuzzy.git",
+    "jquery": "latest",
+    "handlebars": "latest",
     "ember": "http://builds.emberjs.com/release/ember.js"
   }
 }
