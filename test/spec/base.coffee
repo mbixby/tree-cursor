@@ -52,19 +52,6 @@ describe "Base", ->
         direction: 'left'
       expect(getNamesOfNodes result).to.have.members "A C F G B E D".w()
 
-  describe "given a search with leaves-only algorithm", ->
-    beforeEach -> 
-      Search.reopen { method: TreeSearch.LeavesOnlySearch }
-
-    it "should visit only leaf nodes", ->
-      result = Search.createAndPerform()
-      expect(getNamesOfNodes result).to.have.members "D E F G".w()
-
-    it "should work in reverse", ->
-      result = Search.createAndPerform
-        direction: 'left'
-      expect(getNamesOfNodes result).to.have.members "G F E D".w()
-
   describe "#shouldYieldSingleResult", ->
     it "should force search to yield a single result", ->
       result = Search.createAndPerform

@@ -39,5 +39,5 @@ TreeSearch.Traversable = Ember.Mixin.create
       value
 
   setUnknownProperty: (key, value) ->
-    cursor = value.get 'cursor' if value.get?
+    cursor = value.get 'cursor' if value?.get?
     @set "cursor.#{key}", cursor if cursor instanceof TreeSearch.TreeCursor
