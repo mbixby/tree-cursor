@@ -50,12 +50,18 @@ TreeSearch.TreeCursor.reopen
   # TODO Review, Test perf. (?)
   _translateChildNodesAccessor: ->
     if @findChildNodes
-      @findFirstChildNode ?= -> 
-        @get '_childNodes.firstObject'
-      @findRightSiblingNode ?= -> 
-        (@get 'parent._childNodes').objectAt @get '_indexInSiblingNodes' + 1
-      @findLeftSiblingNode ?= -> 
-        (@get 'parent._childNodes').objectAt @get '_indexInSiblingNodes' - 1
+      @findFirstChildNode ?= @_firstObjectInChildNodes
+      @findRightSiblingNode ?= @_rightSiblingInChildNodes
+      @findLeftSiblingNode ?= @_leftSiblingInChildNodes
+
+  _firstObjectInChildNodes: ->
+    @get '_childNodes.firstObject'
+
+  _rightSiblingInChildNodes: ->
+    (@get 'parent._childNodes').objectAt @get '_indexInSiblingNodes' + 1
+
+  _leftSiblingInChildNodes: ->
+    (@get 'parent._childNodes').objectAt @get '_indexInSiblingNodes' - 1
 
   # Memoized childNodes if #findChildNodes is available
   _childNodes: (-> 
