@@ -29,24 +29,9 @@ describe "Trimming", ->
 
   describe "#trim", ->
     it "should copy and trim the tree", ->
-      trimmedTree = trimOutsidesOf 'E', 'C'
-      expect(getNamesOfNodesInTree trimmedTree).to.equal 'A B E C F G'
+      trimmedTree = trimOutsidesOf 'E', 'F'
+      expect(getNamesOfNodesInTree trimmedTree).to.equal 'A B E C F'
 
     it "should not affect the original tree", ->
-      trimmedTree = trimOutsidesOf 'E', 'C'
+      trimOutsidesOf 'E', 'F'
       expect(getNamesOfNodesInTree cursors.get 'A').to.equal 'A B D E C F G'
-
-    it "should trim tree with boundaries on the same branch", ->
-      trimmedTree = trimOutsidesOf 'C', 'G'
-      expect(getNamesOfNodesInTree trimmedTree).to.equal 'A C F G'
-
-  describe "#_isCursorInsideBoundaries", ->
-    it "should find nodes inside defined boundaries", ->
-      trimmedTree = trimOutsidesOf 'E', 'C'
-      original = getAllNodesInTree cursors.get 'A'
-      trimmed = _.compact original.map (cursor) -> 
-        cursor if trimming._isCursorInsideBoundaries cursor
-
-      trimmed = trimmed.mapProperty 'name'
-      trimmed = trimmed.sort().join ' '
-      expect(trimmed).to.equal "A B C E F G"

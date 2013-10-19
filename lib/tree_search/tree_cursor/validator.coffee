@@ -10,5 +10,7 @@ TreeSearch.TreeCursor.Validator = Ember.Object.extend
   # @param Function (TreeCursor -> Boolean)
   validate: undefined
 
-  # @see TreeCursor#skippableToCursor property
-  shouldSkipInvalidCursors: no
+  # By default, any invalid node is skipped (replaced by its children).
+  # If isTreewideValidation is set to true, the tree is invalid
+  # when any one of its nodes (cursors) is invalid.
+  isTreewideValidation: no

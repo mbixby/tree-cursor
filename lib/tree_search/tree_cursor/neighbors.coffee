@@ -122,7 +122,7 @@ TreeSearch.TreeCursor.reopen
 
   # @readonly
   isRoot: (->
-    this is @get 'root'
+    not @get 'parent'
   ).property('root'
   ).meta cursorSpecific: yes 
 
@@ -158,13 +158,11 @@ TreeSearch.TreeCursor.reopen
       # the parent is invalid and can be replaced. Get parent.parent instead.
       validReplacement: 'parent'
 
-  _createChild: (properties) ->
+  _createFirstChild: (properties) ->
     @copy @treewideProperties, Em.merge properties, 
       parent: this
       validReplacement: @_validReplacementForNode()
-
-  _createFirstChild: (properties) ->
-    @_createChild Em.merge properties, leftSibling: null
+      leftSibling: null
 
   _createSibling: (properties) ->
     @copy (@treewideProperties.concat ['parent']), Em.merge properties, 

@@ -5,21 +5,28 @@
 # By specifying two boundaries, a tree can be narrowed down to a subtree:
 # 
 #            A                       A 
-#          /   \        E, C       /   \ 
+#          /   \        E, F       /   \ 
 #        B       C       ~>      B       C      
-#      /  \     / \               \     / \
-#     D    E   F    G              E   F    G
+#      /  \     / \               \     /
+#     D    E   F    G              E   F    
 #     
-# Given a left boundary node M and right boundary node N (nodes may equal),
-# trimmed tree would consist of every node X when all of the following is true:
+# Given a left boundary node L and right boundary node R (nodes may be equal, 
+# both must be leaves) and given that:
 # 
-# * given B is a branch of M, either X is on branch B or X is a descendant of Y, where Y is a right sibling of a member of branch B
-# * given B is a branch of N, either X is on branch B or X is a descendant of Y, where Y is a left sibling of a member of branch B
+# * 'branch of node X' is an array of ancestors of X (including X itself)
+# * 'left (right) boundary branch' is branch of node L (R)
+# * L and R are leafs
 # 
-# Informally, everything left of node M and right of node N is trimmed.
+# Then node X is a 'inside the left (right) boundary' when X is amongst 
+# successors (predecessors) of the left (right) boundary or when X is a member
+# of the respective boundary branch.
+# 
+# Informally, everything left of node L and right of node R is trimmed.
 # 
 # Note that trimming is performed lazily (see 
 # TreeCursor#withRejectionCondition).
+# Multiple trims are currently not supported (due to the method 
+# of memoization of boundaries).
 
 TreeSearch.Trimming = Ember.Object.extend().reopenClass
   
@@ -31,46 +38,63 @@ TreeSearch.Trimming = Ember.Object.extend().reopenClass
 TreeSearch.Trimming.reopen
 
   # @type TreeCursor
-  leftBoundary: ((_, newValue, cachedValue) ->
-    if arguments.length is 1 then cachedValue
-    else @_extractCursorFrom newValue
-  ).property()
+  leftBoundary: undefined
 
   # @alias leftBoundary
   everythingLeftOfBranch: Ember.computed.alias 'leftBoundary'
 
   # @type TreeCursor
-  rightBoundary: ((_, newValue, cachedValue) ->
-    if arguments.length is 1 then cachedValue
-    else @_extractCursorFrom newValue
-  ).property()
+  rightBoundary: undefined
 
   # @alias rightBoundary
   everythingRightOfBranch: Ember.computed.alias 'rightBoundary'
 
   # @returns root of the trimmed tree
-  # Trimming is lazy thanks to TreeCursor#shouldRejectCursor
+  # Trimming is lazy thanks to TreeCursor#_validators
+  # TODO Don't copy twice
   perform: ->
-    (@get '_root').addValidation
+    root = (@get 'leftBoundary.root').copyIntoNewTree {}, @get '_cursorClass'
+    root.copyWithNewValidator @get '_validator'
+
+  _validator: (->
+    TreeSearch.TreeCursor.Validator.create
       validate: (cursor) => @_isCursorInsideBoundaries cursor
       shouldSkipInvalidCursors: yes
       error: "Node has been trimmed away. #{@toString()}"
-
-  # New (copied) root
-  _root: (->
-    boundary = (@get 'leftBoundary') ? @get 'rightBoundary'
-    root = boundary.get 'root'
-    root.copy []
   ).property()
-  
-  # TODO Clean up
-  _isCursorInsideBoundaries: (cursor) ->
-    (not cursor.isLeftOfCursor @get 'leftBoundary') and
-    (not cursor.isRightOfCursor @get 'rightBoundary')
 
-  _extractCursorFrom: (nodeOrCursor) ->
-    if nodeOrCursor instanceof TreeSearch.TreeCursor
-      nodeOrCursor
-    else
-      node = nodeOrCursor
-      (node.get 'cursor') ? node.cursor
+  _isCursorInsideBoundaries: (cursor) ->
+    (cursor.get '_isInsideOfLeftBoundary') and cursor.get '_isInsideOfRightBoundary'
+
+  # We'll extend the cursor class to provide memoized methods for determining 
+  # position against trimming boundaries. If this would be done in the base 
+  # cursor class, the memoization logic would need to handle lookup by method
+  # arguments (i.e. 'boundary' argument for #_isInsideOfLeftBoundary). 
+  _cursorClass: (->
+    trimming = this
+    (@get 'leftBoundary').constructor.extend
+      _trimming: trimming
+
+      treewideProperties: ['_trimming', '_leftBoundary', '_rightBoundary']
+
+      _leftBoundary: (->
+        (@get '_trimming.leftBoundary').copyIntoTree this
+      ).property()
+
+      _rightBoundary: (->
+        (@get '_trimming.rightBoundary').copyIntoTree this
+      ).property()
+
+      _isInsideOfLeftBoundary: (->
+        @_isInsideOfBoundary 'left'
+      ).property('leftSuccessor._isInsideOfLeftBoundary')
+
+      _isInsideOfRightBoundary: (->
+        @_isInsideOfBoundary 'right'
+      ).property('rightSuccessor._isInsideOfRightBoundary')
+
+      _isInsideOfBoundary: (direction) ->
+        ((@get "_#{direction}Boundary.branch").contains this) or
+        (@get "#{direction}Successor._isInsideOf#{direction.capitalize()}Boundary")
+  ).property()
+

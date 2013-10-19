@@ -1,7 +1,26 @@
 # TreeNode
 # Represents perfect (fully saturated) binary tree
 
-Helpers.TreeNode = Ember.Object.extend TreeSearch.Traversable,
+Helpers.TreeNode = Ember.Object.extend().reopenClass
+  
+  create: (properties = {}) ->
+    node = @_getFromSharedPool properties
+    node ?= do => 
+      node = @_super properties
+      @_saveToSharedPool node
+
+  _getFromSharedPool: (properties) ->
+    properties.nodePool?.get @_serializeIndex properties.index
+
+  _saveToSharedPool: (node) ->
+    (node.get 'nodePool').set (@_serializeIndex node.index), node
+    node
+
+  _serializeIndex: (index) ->
+    # It's just for testing...
+    "#{index[0]}-#{index[1]}"
+
+Helpers.TreeNode = Helpers.TreeNode.reopen TreeSearch.Traversable,
   
   # @type {String} ASCII art of the tree
   ascii: null
@@ -40,5 +59,12 @@ Helpers.TreeNode = Ember.Object.extend TreeSearch.Traversable,
     Helpers.ArrayTreeCursor
   ).property()
 
-  equals: (node) ->
-    ([this, node].mapProperty 'name').reduce (a, b) -> a is b
+  # Object pool to assert uniqueness of nodes
+  nodePool: (->
+    Ember.Map.create()
+  ).property()
+
+  copy: (properties) -> 
+    @constructor.create Ember.merge properties,
+      tree: @get 'tree'
+      nodePool: @get 'nodePool'

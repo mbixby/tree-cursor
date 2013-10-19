@@ -13,10 +13,12 @@ require 'tree_search/tree_cursor/validator'
 # In order to avoid infinite recursion, a condition must be
 # self-dependent for at least one node of the tree. (TODO Illustrate)
 # 
-# Conditions are tested on an *unrestricted copy* of the tree in order
-# to simplify the rejection mechanism and prevent unnecessary infinite
-# recursive loops (i.e. in conditions that depend on the rest of the tree).
-# (TODO Temporary)
+# Conditions are tested on an *unrestricted copy* of the tree.
+# This simplifies the validation mechanism and is required to discover every
+# valid node in the tree. (To illustrate, if a valid cursor was surrounded 
+# by a line of invalid cursors, recursive validation process would not 
+# be able to skip the invalid cursors (because they wouldn't be created) 
+# to get to other potentially valid cursors adjacent to invalid cursors.)
 # 
 # Be careful when creating conditions overly dependent on the rest
 # of the tree as this can add significant overhead.
@@ -26,25 +28,32 @@ require 'tree_search/tree_cursor/validator'
 # 
 # TODO More clear description, note about checking conditions against 
 # ghost tree with complete acceptance (false notion), note about propagation
-
+        
 TreeSearch.TreeCursor.reopen
 
-  # @see #addValidator
+  # @see #copyWithNewValidator
   # @param validationParameters {Object} parameters for TreeCursor.Validator
-  addValidation: (parameters) ->
-    @addValidator TreeSearch.TreeCursor.Validator.create parameters
+  copyWithNewValidation: (validationParameters, properties, constructor) ->
+    validator = TreeSearch.TreeCursor.Validator.create validationParameters
+    @copyWithNewValidator validator, properties, constructor
 
+  # Copies this cursors into a new tree that will be checked against 
+  # the new validation.
+  # 
+  # @see copyIntoNewTree
   # @param validator {TreeSearch.TreeCursor.Validator}
-  # @returns modified self
-  addValidator: (validator) ->
-    (@get '_validators').push validator
-    this
+  copyWithNewValidator: (validator, properties = {}, constructor) ->
+    properties = Ember.merge properties,
+      _validators: (@get '_validators').copy().add validator
+      originalTree: this
+    @copyIntoNewTree properties, constructor
 
   # In case this cursor is invalid, it can be replaced by a different cursor
-  # specified by this property.
+  # (or more) specified by this property.
   # Enter property name for adjacent cursor (e.g. 'parent' or 'successor') or
   # a function that retrieves the cursor itself.
-  # TODO Clarify that this property is relevant only as an argument for #create
+  # TODO Clarify that this property is relevant only for #create
+  # TODO Clarify result with multiple cursors
   # 
   # @type String | Function (-> TreeCursor) | Function (-> [TreeCursor])
   validReplacement: undefined
@@ -56,10 +65,13 @@ TreeSearch.TreeCursor.reopen
     failed = @get '_firstFailedValidator'
     if not failed
       this
-    else if failed.get 'shouldSkipInvalidCursors'
-      @get '_extractedValidReplacement'
+    else if failed.get 'isTreewideValidation'
+      # TODO Invalidate the whole tree
+      # (@get 'cursorPool').forEach (_, cursor)
+      #   cursor.invalidate()
+      null 
     else
-      null
+      @get '_extractedValidReplacement'
   ).property()
 
   # Get property or call function from @validAccessor 
@@ -71,32 +83,28 @@ TreeSearch.TreeCursor.reopen
       accessor?.apply this, []
   ).property('validReplacement')
 
+  validations: (->
+    _.zipObject (@get '_validators').map (validator) ->
+      identifier = validator.identifier ? Ember.guidFor validator
+      result = null
+      [identifier, result]
+  ).property('_validators')
+
   # @see above
+  # @type Ember.Set
   _validators: (->
-    [@_validateExistenceOfNode]
+    Ember.Set.create()
   ).property()
 
-  # Example validator
-  # Invalidates cursor without a node
-  # @see above
-  _validateExistenceOfNode: TreeSearch.TreeCursor.Validator.create
-    # TODO 0 and "" don't pass
-    validate: (cursor) -> (cursor.node isnt undefined) and cursor.node isnt null
-    shouldSkipInvalidCursors: no
-    error: "Node does not exist"
-
-  # TODO Complete the partial tree until it can be validated, only then 
-  # validate
-  # @returns {Array} failed conditions
   _firstFailedValidator: (->
     for validator in @get '_validators'
-      return validator unless validator.validate this
+      return validator unless validator.validate @get 'twinFromOriginalTree'
   ).property()
 
-  _warnAboutMissingMethods: ->
-    return if @constructor._didWarnBefore # Don't nag
-    node = @get 'node'
-    doesNodeDefineEqualsMethod = ('object' isnt typeof node) or
-      (('object' is typeof node) and node?.equals?)
-    Ember.warn "You have not defined #equals method on the node prototype. Please see documentation for TreeCursor#equals for more information. – #{@constructor.toString()}", doesNodeDefineEqualsMethod
-    @constructor._didWarnBefore = yes unless doesNodeDefineEqualsMethod
+  twinFromOriginalTree: (->
+    @copyIntoTree @originalTree
+  ).property()
+
+  # Original tree (unrestricted copy without current validators)
+  # This property is shared across the tree via #treewideProperties
+  originalTree: undefined
