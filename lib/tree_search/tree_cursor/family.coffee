@@ -34,7 +34,7 @@ TreeSearch.TreeCursor.reopen
 
     # Trace the lineage from root
     _.head _.reduce branches, (([commonAncestor, shouldStop], [ancestorA, ancestorB]) ->
-      if (not shouldStop) and ancestorA?.equals ancestorB
+      if (not shouldStop) and ancestorA is ancestorB
         [ancestorA, no]
       # Stop reducing when we hit the result
       else
@@ -47,7 +47,7 @@ TreeSearch.TreeCursor.reopen
   # @public
   findChildBelongingToBranch: (branch) ->
     for candidate in branch
-      return candidate if @equals candidate.get 'parent'
+      return candidate if this is candidate.get 'parent'
     undefined
 
   # Sibling ancestors of nodes A, B are nodes C, D if and only if:

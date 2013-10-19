@@ -29,6 +29,20 @@ describe "TreeCursor (base)", ->
       "G": (-> @get 'C.lastChild' ).property()
     ).create()
 
+  describe "#create", ->
+    it "should retrieve existing cursor from cursor pool", ->
+      strayCursor = Helpers.ArrayTreeCursor.create 
+        node: cursors.get "C.node"
+        cursorPool: cursors.get "C.cursorPool"
+      expect(strayCursor._cachedOrDefinedProperty 'parent').to.not.be.defined
+      expect(strayCursor.get 'parent').to.equal cursors.get "A"
+
+    it "should not retrieve existing cursor from foreign cursor pool", ->
+      strayCursor = Helpers.ArrayTreeCursor.create 
+        node: cursors.get "C.node"
+      expect(strayCursor._cachedOrDefinedProperty 'parent').to.not.be.defined
+      expect(strayCursor.get 'parent').to.not.equal cursors.get "A"
+
   describe "#copy", ->
     it "should duplicate the tree by not carrying over memoized values", ->
       memoizeSomeCursors = do ->

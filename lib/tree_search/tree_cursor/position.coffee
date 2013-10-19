@@ -34,7 +34,7 @@ TreeSearch.TreeCursor.reopen
   # @param {TreeCursor} cursor any cursor in the tree
   # @public
   determineHorizontalPositionAgainstCursor: (cursor) ->
-    if (not cursor) or @equals cursor
+    if (not cursor) or this is cursor
       undefined
     else if ancestors = @findClosestSiblingAncestorsWithCursor cursor
       [a, b] = ancestors
@@ -48,7 +48,7 @@ TreeSearch.TreeCursor.reopen
     return undefined unless sibling
     for direction in ['left', 'right'] 
       while candidate = (candidate ? this).get "#{direction.opposite()}Sibling"
-        return direction if candidate.equals sibling
+        return direction if candidate is sibling
     undefined
 
   # TODO Review
@@ -66,7 +66,7 @@ TreeSearch.TreeCursor.reopen
 
     # Not being the common ancestor would mean they're not on the same branch
     ancestor = @findClosestCommonAncestorWithCursor cursor
-    return undefined unless (@equals ancestor) or cursor.equals ancestor
+    return undefined unless (this is ancestor) or cursor is ancestor
 
     if branchA.length < branchB.length
       'top'

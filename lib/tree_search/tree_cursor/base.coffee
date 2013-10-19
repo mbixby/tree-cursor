@@ -19,8 +19,8 @@
 # * nomenclature that follows conventions (popular or from CS literature)
 # * common API for tree-like objects which allows for reuse of tree-related 
 #   utilities (e.g. Search, Trimming)
+# * ability to connect disjoint (partial) trees (see cursor pools)
 # * accessors with direction that can be interpolated ("#{direction}Sibling")
-# * extendibility
 # * adaptability; cursors can easily adapted for existing trees with a handful
 #   of functions and even *supplement existing* navigation logic (e.g. native 
 #   HTML DOM)
@@ -46,12 +46,10 @@
 # 
 # * memoization in volatile trees (explicitly create / remove nodes)
 # * better test coverage
-# * recycle cursors from a pool (?)
 # * parallelization
 # 
-# 
 # TODO Implementation notes, FRP, Ember, mutability of cursors,
-# cursor vs. position, reconstruction of trees from unconnected branches 
+# cursor vs. position (vs. pointer), reconstruction of trees from unconnected branches 
 # (partial trees), define find*Node methods on nodes
 # 
 # Functional Pearl: The Zipper, by Gerard Huet
@@ -62,11 +60,22 @@ TreeSearch.TreeCursor = Ember.Object.extend().reopenClass
   # Creating an invalid cursor returns null *or* the nearest valid cursor.
   # For more information about validation, see tree_cursor/validation.coffee
   # @returns {TreeCursor | null}
-  create: (parameters = {}) ->
-    return null unless parameters.node
-    cursor = @_super.apply this, arguments
-    cursor._warnAboutMissingMethods()
+  create: (properties = {}) ->
+    return null unless properties.node
+    cursor = do =>
+      cursor = @_getFromSharedPool properties
+      cursor?.setProperties properties
+    cursor ?= do => 
+      cursor = @_super properties
+      @_saveToSharedPool cursor
     cursor.get '_nearestValidCursor'
+
+  _getFromSharedPool: (properties) ->
+    properties.cursorPool?.get properties.node
+
+  _saveToSharedPool: (cursor) ->
+    (cursor.get 'cursorPool').set cursor.node, cursor
+    cursor
 
 TreeSearch.TreeCursor.reopen Ember.Copyable, Ember.Freezable,
 
@@ -86,57 +95,79 @@ TreeSearch.TreeCursor.reopen Ember.Copyable, Ember.Freezable,
   # @public
   isVolatile: no
 
-  # By default, two cursors are equal when one of the following is true:
-  #   – they're the same object
-  #   – they point to the same node *and* node#equals method is defined
-  #   – they point to the same instance of node *and* node#equals method 
-  #     is not defined
-  #     
-  # You should provide node#equals method or override this method 
-  # in a subclass.
-  # 
-  # In order to determine whether two cursors point to the same node, you 
-  # should declare #equals function on the node prototype. Checking simply 
-  # with '===' is sometimes too much or not enough (e.g. when multiple 
-  # instances of the same node can exist or when multiple instances can 
-  # represent the same node).
-  # @public
-  equals: (cursor) ->
-    return no unless cursor
-    (this is cursor) or do =>
-      [a, b] = [(@get 'node'), cursor.get 'node']
-      isEqualsMethodDefined = ('object' is typeof a) and a.equals?
-      if isEqualsMethodDefined
-        a.equals b
-      else
-        a is b
-
   # @example
   # ```
-  #   @copy (@treewideProperties.concat ['parent']),
-  #     node: "A"
+  #   @copy (@treewideProperties.concat ['parent']), node: "A"
   # ```
   # Important:
-  # Copying will copy the cursor along with the information about the current
-  # tree (validators, volatility, specified cached properties, ...). 
+  # This will copy the cursor along with the information about its current
+  # tree (validators, cursorPool, volatility, cached properties if specified).
   # 
-  # @param carryOver {Array} keys of properties to copy over
-  # @param other {Object} other properties
+  # @param {Array} carryOver Keys of properties to copy over
+  # @param {Object} properties Other properties
   # @public
-  copy: (carryOver = @treewideProperties, otherProperties = {}) ->
-    carriedOver = @_memoizedPropertiesForKeys carryOver
-    specificToCopying = node: @node
-    properties = [specificToCopying, carriedOver, otherProperties]
-    # Note that order of preference when merging is right to left
-    properties = properties.reduce ((a, b) -> Ember.merge a, b), {}
-    @constructor.create properties
+  copy: (carryOver = @treewideProperties, properties = {}) ->
+    carryOverProperties = @_memoizedPropertiesForKeys carryOver.concat ['node']
+    @constructor.create Ember.merge carryOverProperties, properties
 
-  # Immutable (!) list of properties shared with cursors in the whole tree.
-  # (Unforunately JS doesn't support freezable objects.)
+  # Create a cursor in an existing tree with node from the current cursor.
+  # 
+  # @param {TreeCursor} tree Existing tree
+  # @param {Object} properties
+  # @see #copy, #cursorPool, tests for examples
+  # @public
+  copyIntoTree: (tree, properties = {}) ->
+    tree.copy @treewideProperties, Ember.merge properties, node: @node
+  
+  # By ommitting 'cursorPool' from the list of carried over properties, 
+  # this will essentialy create a brand new tree, keeping only validations 
+  # and volatility setting.
+  # 
+  # @param {TreeCursor} constructor
+  # @param {Object} properties
+  # @see #copy, #cursorPool, tests for examples
+  # @public
+  copyIntoNewTree: (properties = {}, constructor = @constructor) ->
+    constructor.create Ember.merge {
+      _validators: (@get '_validators').copy()
+      isVolatile: @isVolatile
+      node: @node
+    }, properties
+
+  concatenatedProperties: ['treewideProperties']
+
+  # Immutable list of properties shared with cursors in the whole tree.
+  # TODO Extract into separate object
+  # 
+  # If you define treewideProperties in your subclass, it will be concatenated
+  # with treewideProperties from superclasses.
+  # @see concatenatedProperties in Ember
   # @readonly
-  treewideProperties: ['root', 'isVolatile', '_validators']
+  treewideProperties: ['cursorPool', 'root', 'isVolatile', '_validators', 'originalTree']
+
+  # Pool of cursors in the tree (map of nodes to cursors) to assert
+  # uniqueness of cursors.
+  # 
+  # Sharing the same pool across multiple individual cursors will indicate
+  # that they belong to the same tree. 
+  # Especially note that:
+  # 
+  # * no two instances of TreeCursor from the same cursor pool will share
+  #   the same node
+  # * one node can be shared by two cursors if the cursors belong 
+  #   to two different cursor pools. This means that you can create multiple 
+  #   different tree representations (abstract trees) from the original tree
+  #   just by manipulating cursors (pointers). This is especially useful 
+  #   when operating on immutable data or when adding abstract constraints 
+  #   (see #copyWithNewValidator).
+  # 
+  # @type Ember.Map (where keys are nodes; values its cursors)
+  # @public
+  cursorPool: (->
+    Ember.Map.create()
+  ).property()
 
   # TODO Remove
-  _init: ->
+  init: ->
     @_super.call this, arguments...
     @_translateChildNodesAccessor()
