@@ -1,15 +1,15 @@
-TreeSearch.BFS =
+TreeSearch.BFS = Ember.Object.extend().reopenClass
   
-  getNextCursor: (cursor, direction, initialCursor) ->
+  getNextCursor: (cursor, direction, initialCursor, meta) ->
     next = initialCursor unless cursor
     next ?= cursor.get "#{direction}SuccessorAtSameDepth"
     next ?= do ->
-      leftmost = (cursor.get "#{direction.opposite()}mostSibling") ? cursor
-      leftmost?.get "firstChildFrom#{direction.opposite().capitalize()}"
+      meta.leftmost ?= initialCursor
+      meta.leftmost = meta.leftmost.get "firstChildFrom#{direction.opposite().capitalize()}"
 
 # BFSWithQueue preloads some nodes even if they won't be visited 
-# when searching. This is generally not desired in dynamic (volatile) trees.
-TreeSearch.BFSWithQueue =
+# when searching. This may not be desired in dynamic (volatile) trees.
+TreeSearch.BFSWithQueue = Ember.Object.extend().reopenClass
   
   getNextCursor: (cursor, direction, initialCursor, meta) ->
     queue = meta._queue ?= [initialCursor]

@@ -1,4 +1,10 @@
-TreeSearch.DFS =
+TreeSearch.DFS = Ember.Object.extend().reopenClass
+
+  getNextCursor: (cursor, direction, initialCursor, meta) ->
+    next = initialCursor unless cursor
+    next ?= cursor.get "#{direction}Successor"
+
+TreeSearch.DFSWithQueue = Ember.Object.extend().reopenClass
 
   getNextCursor: (cursor, direction, initialCursor, meta) ->
     queue = meta._queue ?= [initialCursor]

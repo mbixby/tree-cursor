@@ -23,7 +23,7 @@ TreeSearch.Base = Ember.Object.extend().reopenClass
 TreeSearch.Base.reopen
 
   # The search will begin with this node
-  # @type object
+  # @type Object
   initialNode: Ember.required()
   
   # If the function resolves to true, the tested node will be yielded 
@@ -39,8 +39,7 @@ TreeSearch.Base.reopen
 
   # Search algorithm
   # @public
-  # @type TreeSearch.(BFS | DFS | LeavesOnlySearch)
-  # LeavesOnlySearch traverses only through leaf nodes
+  # @type TreeSearch.(BFS | DFS)
   method: TreeSearch.BFSWithQueue
 
   # If yes, the search will be stopped when a single result
@@ -100,6 +99,14 @@ TreeSearch.Base.reopen
   # @type Function (Object ->)
   didEnterNode: Ember.K
 
+  # Current node 
+  # @type Object
+  currentNode: undefined
+
+  # Last visited node 
+  # @type Object
+  previousNode: undefined
+
   # Tree cursor tells us how to walk through the tree, from node to node 
   # (how to get node's sibling, child or parent)
   # @protected
@@ -111,14 +118,15 @@ TreeSearch.Base.reopen
   perform: ->
     if @get 'shouldIgnoreInitialNode'
       @_getNextNode()
-    while candidate = @_getNextNode()
-      shouldStop = @_visitNode candidate
+    @previousNode = @currentNode
+    while @currentNode = @_getNextNode()
+      shouldStop = @_visitNode @currentNode
       break if shouldStop
     @get 'result'
 
   # TODO Publicize search algorithm
   _getNextNode: ->
-    args = ['_cursor', 'direction', '_initialCursor', '_searchMeta']
+    args = ['_cursor', 'direction', 'initialCursor', '_searchMeta']
     args = args.map (key) => @get key
     cursor = (@get 'method').getNextCursor args...
     @set '_cursor', cursor
@@ -144,7 +152,7 @@ TreeSearch.Base.reopen
   # Cursor pointing to the current node
   _cursor: null
 
-  _initialCursor: (->
+  initialCursor: (->
     (@get 'cursorClass').create
       node: @get 'initialNode'
   ).property()
