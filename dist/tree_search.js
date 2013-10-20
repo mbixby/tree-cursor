@@ -907,12 +907,13 @@ TreeSearch.Trimming = Ember.Object.extend().reopenClass({
 });
 
 TreeSearch.Trimming.reopen({
-  leftBoundary: void 0,
+  leftBoundary: null,
   everythingLeftOfBranch: Ember.computed.alias('leftBoundary'),
-  rightBoundary: void 0,
+  rightBoundary: null,
   everythingRightOfBranch: Ember.computed.alias('rightBoundary'),
   perform: function() {
     var root;
+    this.expandBoundariesToNearestLeaves();
     root = (this.get('leftBoundary.root')).copyIntoNewTree({}, this.get('_cursorClass'));
     return root.copyWithNewValidator(this.get('_validator'));
   },
@@ -951,5 +952,21 @@ TreeSearch.Trimming.reopen({
         return ((this.get("_" + direction + "Boundary.branch")).contains(this)) || (this.get("" + direction + "Successor._isInsideOf" + (direction.capitalize()) + "Boundary"));
       }
     });
-  }).property()
+  }).property(),
+  expandBoundariesToNearestLeaves: function() {
+    var boundary, direction, leaf, _i, _len, _ref, _results;
+    _ref = ['left', 'right'];
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      direction = _ref[_i];
+      boundary = this.get("" + direction + "Boundary");
+      if (!boundary.get('isLeaf')) {
+        leaf = boundary.get("" + (direction.opposite()) + "LeafSuccessor");
+        _results.push(this.set("" + direction + "Boundary", leaf));
+      } else {
+        _results.push(void 0);
+      }
+    }
+    return _results;
+  }
 });

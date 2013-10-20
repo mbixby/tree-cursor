@@ -32,6 +32,18 @@ describe "Trimming", ->
       trimmedTree = trimOutsidesOf 'E', 'F'
       expect(getNamesOfNodesInTree trimmedTree).to.equal 'A B E C F'
 
+    it "should accept the same cursors", ->
+      trimmedTree = trimOutsidesOf 'E', 'E'
+      expect(getNamesOfNodesInTree trimmedTree).to.equal 'A B E'
+
+    it "should accept cursors on the same branch", ->
+      trimmedTree = trimOutsidesOf 'B', 'E'
+      expect(getNamesOfNodesInTree trimmedTree).to.equal 'A B D E'
+
+    it "should accept boundaries that are not leaves", ->
+      trimmedTree = trimOutsidesOf 'E', 'C'
+      expect(getNamesOfNodesInTree trimmedTree).to.equal 'A B E C F G'
+
     it "should not affect the original tree", ->
       trimOutsidesOf 'E', 'F'
       expect(getNamesOfNodesInTree cursors.get 'A').to.equal 'A B D E C F G'

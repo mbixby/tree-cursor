@@ -38,13 +38,13 @@ TreeSearch.Trimming = Ember.Object.extend().reopenClass
 TreeSearch.Trimming.reopen
 
   # @type TreeCursor
-  leftBoundary: undefined
+  leftBoundary: null
 
   # @alias leftBoundary
   everythingLeftOfBranch: Ember.computed.alias 'leftBoundary'
 
   # @type TreeCursor
-  rightBoundary: undefined
+  rightBoundary: null
 
   # @alias rightBoundary
   everythingRightOfBranch: Ember.computed.alias 'rightBoundary'
@@ -53,6 +53,7 @@ TreeSearch.Trimming.reopen
   # Trimming is lazy thanks to TreeCursor#_validators
   # TODO Don't copy twice
   perform: ->
+    @expandBoundariesToNearestLeaves()
     root = (@get 'leftBoundary.root').copyIntoNewTree {}, @get '_cursorClass'
     root.copyWithNewValidator @get '_validator'
 
@@ -97,4 +98,11 @@ TreeSearch.Trimming.reopen
         ((@get "_#{direction}Boundary.branch").contains this) or
         (@get "#{direction}Successor._isInsideOf#{direction.capitalize()}Boundary")
   ).property()
+
+  expandBoundariesToNearestLeaves: ->
+    for direction in ['left', 'right']
+      boundary = @get "#{direction}Boundary"
+      unless boundary.get 'isLeaf'
+        leaf = boundary.get "#{direction.opposite()}LeafSuccessor"
+        @set "#{direction}Boundary", leaf
 
