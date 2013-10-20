@@ -27,6 +27,15 @@
 # TreeCursor#withRejectionCondition).
 # Multiple trims are currently not supported (due to the method 
 # of memoization of boundaries).
+# 
+# Development note: as mentioned in TreeCusor documentation, your node lookup
+# methods (e.g. `TreeCursor#findParentNode`) should not create multiple objects
+# per node. This is needed because when validating a cursor, we need to search
+# for its cursor twin in the original (invalid) tree – and we do this 
+# by looking for a cursor with an equal node (via TreeCursor#cursorPool). 
+# More robust equality checks are currently not supported. 
+# See `Helpers.TreeNode` to see how this is handled in practice 
+# (`Helpers.TreeNode#nodePool`).
 
 TreeSearch.Trimming = Ember.Object.extend().reopenClass
   

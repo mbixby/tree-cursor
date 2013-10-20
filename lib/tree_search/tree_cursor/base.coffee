@@ -150,6 +150,18 @@ TreeSearch.TreeCursor.reopen Ember.Copyable, Ember.Freezable,
   # 
   # Sharing the same pool across multiple individual cursors will indicate
   # that they belong to the same tree. 
+  # 
+  # Since node equality is used to determine whether cursors belong 
+  # to the same tree (i.e. cursors are mapped by node objects), there cannot
+  # be multiple objects representing the same node. More robust equality 
+  # checks (typical `isEqual` and `hash` method) are currently not supported.
+  # Failing to conform to this would affect tree validations and memoization 
+  # when traversing tree from disconnected nodes.
+  # (Example: Presume two nodes A and B from the same tree which don't know 
+  # about each other (no memoized neighbors). When A discovers a neighboring 
+  # node, it will check if the node is present in the cursorPool. If the node
+  # is equal (Javascript's `===`), to B's node, A will recognize B.
+  # 
   # Especially note that:
   # 
   # * no two instances of TreeCursor from the same cursor pool will share

@@ -5,8 +5,13 @@
 # of adjacent nodes. Please mind the type signature.
 # See TreeCursor class in DOMUtilities component for an example.
 # 
-# Note: These are defined on TreeCursor and not on Node as to not
-# pollute your Node class with navigation logic.
+# Important: You should not return multiple objects representing the same
+# node (one node => one Javascript object). Object equality is used
+# to check whether two nodes belong to the same tree. See
+# TreeCursor#cursorPool for more info.
+# 
+# (These methods are defined on TreeCursor and not on Node as to not
+# pollute your Node class with navigation logic.)
 
 TreeSearch.TreeCursor.reopen
   
