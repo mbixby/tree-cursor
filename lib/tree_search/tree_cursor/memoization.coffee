@@ -16,6 +16,37 @@
 # ```
 
 TreeSearch.TreeCursor.reopen
+  
+  # Dirtying a node will clean its memoized properties (cached information
+  # about its neighbors)
+  # @public
+  dirtyCursor: ->
+    @reset()
+
+  # @public
+  dirtySubtree: ->
+    cursor.dirtySubtree() for cursor in @get 'children'
+    @dirtyCursor()
+
+  # @public
+  dirtyChildren: ->
+    cursor.dirtySubtree() for cursor in @get 'children'
+    # TODO This doesn't look well
+    @_clearCacheOfProperty key for key in ['firstChild', '_children']
+
+  # Resets cursor with new properties. Can be used instead of this.copy
+  # for performance reasons (to repurpose cursors).
+  # TODO Decouple tree-wide (#isVolatile) from cursor-specific
+  # configuration for straightforward removal of cursor-specific residue.
+  # 
+  # @param {Array ([String])} preserved keys of preserved properties
+  reset: (preserved = ['root'], properties = {}) ->
+    Ember.changeProperties =>
+      keys = @get '_namesOfCursorSpecificProperties'
+      keys = keys.reject (key) -> preserved.contains key
+      @_clearCacheOfProperty key for key in keys
+      @set key, value for key, value of properties
+      this
 
   # Constructs an object with memoized properties from the current
   # cursor. This can be passed to @create to preserve memoized properties
@@ -29,19 +60,6 @@ TreeSearch.TreeCursor.reopen
         @cacheFor key
       [key, value] if value isnt undefined
     _.zipObject _.compact keysAndValues
-
-  # Resets cursor with new properties. Can be used instead of this.copy
-  # for performance reasons.
-  # TODO Decouple tree-wide (@isVolatile) from cursor-specific
-  # configuration for straightforward removal of cursor-specific residue.
-  # 
-  # @param {Array ([String])} preserved keys of preserved properties
-  reset: (preserved = ['root'], properties = {}) ->
-    keys = @get '_namesOfCursorSpecificProperties'
-    keys = keys.reject (key) -> preserved.contains key
-    @_clearCacheOfProperty key for key in keys
-    @set key, value for key, value of properties
-    this
 
   # Important: the list contains only properties that were have been set 
   # (via @set) on this object

@@ -1,44 +1,35 @@
 # TODO Tests for 
-#   #copy and other public methods
-#   volatile trees
-#   connecting partial trees, pool of cursors
 #   all configurations of cursor
-#   memoized adjacent cursor in validReplacement
 #   status of caches at different points of discovery of adjacent cursors
-#   test isolated cursors, not just cursors derived from root
     
 describe "TreeCursor (base)", ->
-  tree = Helpers.TreeNode.create ascii: """
+  tree = """
            A
-         /   \
-       B       C
-     /  \     /  \
+         /   ∖
+       B       C 
+     /  ∖     /  ∖
     D    E   F    G
   """
 
   cursors = null
+  Cursor = null
 
   beforeEach ->
-    cursors = (Ember.Object.extend
-      "A": (-> Helpers.ArrayTreeCursor.create node: tree ).property()
-      "B": (-> @get 'A.firstChild' ).property()
-      "C": (-> @get 'A.lastChild' ).property()
-      "D": (-> @get 'B.firstChild' ).property()
-      "E": (-> @get 'B.lastChild' ).property()
-      "F": (-> @get 'C.firstChild' ).property()
-      "G": (-> @get 'C.lastChild' ).property()
-    ).create()
+    rootNode = Helpers.AsciiTreeParser.parse tree
+    cursors = getListOfCursorsIn rootNode
+    Cursor = rootNode.cursorClass
 
   describe "#create", ->
     it "should retrieve existing cursor from cursor pool", ->
-      strayCursor = Helpers.ArrayTreeCursor.create 
+      strayCursor = Cursor.create
         node: cursors.get "C.node"
         cursorPool: cursors.get "C.cursorPool"
+      debugger
       expect(strayCursor._cachedOrDefinedProperty 'parent').to.not.be.defined
       expect(strayCursor.get 'parent').to.equal cursors.get "A"
 
     it "should not retrieve existing cursor from foreign cursor pool", ->
-      strayCursor = Helpers.ArrayTreeCursor.create 
+      strayCursor = Cursor.create
         node: cursors.get "C.node"
       expect(strayCursor._cachedOrDefinedProperty 'parent').to.not.be.defined
       expect(strayCursor.get 'parent').to.not.equal cursors.get "A"

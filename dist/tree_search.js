@@ -3,6 +3,26 @@ var TreeSearch;
 window.TreeSearch = TreeSearch = Ember.Namespace.create();
 
 
+if (Ember.EXTEND_PROTOTYPES || Ember.EXTEND_PROTOTYPES.Array) {
+  Array.prototype.chunk = function(n) {
+    var i, item, x, _i, _len, _results;
+    _results = [];
+    for ((n > 0 ? (i = _i = 0, _len = this.length) : i = _i = this.length - 1); n > 0 ? _i < _len : _i >= 0; i = _i += n) {
+      item = this[i];
+      _results.push((function() {
+        var _j, _results1;
+        _results1 = [];
+        for (x = _j = 0; 0 <= n ? _j < n : _j > n; x = 0 <= n ? ++_j : --_j) {
+          _results1.push(this[i + x]);
+        }
+        return _results1;
+      }).call(this));
+    }
+    return _results;
+  };
+}
+
+
 var _Debug;
 
 _Debug = {
@@ -60,35 +80,63 @@ if (Ember.EXTEND_PROTOTYPES || Ember.EXTEND_PROTOTYPES.String) {
 
 var __slice = [].slice;
 
-TreeSearch.TreeCursor = Ember.Object.extend().reopenClass({
+
+TreeSearch.ObjectWithSharedPool = Ember.Object.extend().reopenClass({
   create: function(properties) {
-    var cursor,
-      _this = this;
+    var object;
+    if (properties == null) {
+      properties = {};
+    }
+    if (object = this.getFromSharedPool(properties)) {
+      return object != null ? object.setProperties(properties) : void 0;
+    } else {
+      object = this._super.apply(this, arguments);
+      return this.saveToSharedPool(object);
+    }
+  },
+  getFromSharedPool: function(properties) {
+    var sharedPool;
+    sharedPool = this.sharedPoolForObject(properties);
+    return sharedPool != null ? sharedPool.get(this.keyForObject(properties)) : void 0;
+  },
+  saveToSharedPool: function(object) {
+    var sharedPool;
+    sharedPool = this.sharedPoolForObject(object);
+    sharedPool.set(this.keyForObject(object), object);
+    return object;
+  },
+  keyForObject: function(properties) {
+    return Ember.get(properties, 'id');
+  },
+  sharedPoolForObject: function(properties) {
+    return Ember.get(properties, 'sharedPool');
+  }
+});
+
+TreeSearch.ObjectWithSharedPool.reopen({
+  sharedPool: (function() {
+    return Ember.Map.create();
+  }).property()
+});
+
+
+TreeSearch.TreeCursor = TreeSearch.ObjectWithSharedPool.extend().reopenClass({
+  create: function(properties) {
+    var cursor;
     if (properties == null) {
       properties = {};
     }
     if (!properties.node) {
       return null;
     }
-    cursor = (function() {
-      cursor = _this._getFromSharedPool(properties);
-      return cursor != null ? cursor.setProperties(properties) : void 0;
-    })();
-    if (cursor == null) {
-      cursor = (function() {
-        cursor = _this._super(properties);
-        return _this._saveToSharedPool(cursor);
-      })();
-    }
+    cursor = this._super(properties);
     return cursor.get('_nearestValidCursor');
   },
-  _getFromSharedPool: function(properties) {
-    var _ref;
-    return (_ref = properties.cursorPool) != null ? _ref.get(properties.node) : void 0;
+  keyForObject: function(properties) {
+    return properties.node;
   },
-  _saveToSharedPool: function(cursor) {
-    (cursor.get('cursorPool')).set(cursor.node, cursor);
-    return cursor;
+  sharedPoolForObject: function(properties) {
+    return Ember.get(properties, 'cursorPool');
   }
 });
 
@@ -129,13 +177,16 @@ TreeSearch.TreeCursor.reopen(Ember.Copyable, Ember.Freezable, {
   },
   concatenatedProperties: ['treewideProperties'],
   treewideProperties: ['cursorPool', 'root', 'isVolatile', '_validators', 'originalTree'],
-  cursorPool: (function() {
-    return Ember.Map.create();
-  }).property(),
+  cursorPool: Ember.computed.alias('sharedPool'),
   init: function() {
     var _ref;
     (_ref = this._super).call.apply(_ref, [this].concat(__slice.call(arguments)));
     return this._translateChildNodesAccessor();
+  },
+  name: Ember.computed.oneWay('node.name'),
+  toString: function() {
+    var _ref;
+    return (_ref = this.get('name')) != null ? _ref : this._super();
   }
 });
 
@@ -173,18 +224,20 @@ TreeSearch.TreeCursor.reopen({
     return this.get('_childNodes.firstObject');
   },
   _rightSiblingInChildNodes: function() {
-    return (this.get('parent._childNodes')).objectAt(this.get('_indexInSiblingNodes' + 1));
+    var _ref;
+    return (_ref = this.get('parent._childNodes')) != null ? _ref.objectAt((this.get('_indexInSiblingNodes')) + 1) : void 0;
   },
   _leftSiblingInChildNodes: function() {
-    return (this.get('parent._childNodes')).objectAt(this.get('_indexInSiblingNodes' - 1));
+    var _ref;
+    return (_ref = this.get('parent._childNodes')) != null ? _ref.objectAt((this.get('_indexInSiblingNodes')) - 1) : void 0;
   },
   _childNodes: (function() {
-    return this.findChildNodes();
+    return this.findChildNodes(this.node);
   }).property().meta({
     cursorSpecific: true
   }),
   _indexInSiblingNodes: (function() {
-    return (this.get('parent._childNodes')).indexOf(this.get('node'));
+    return (this.get('parent._childNodes')).indexOf(this.node);
   }).property().meta({
     cursorSpecific: true
   })
@@ -251,6 +304,58 @@ TreeSearch.TreeCursor.reopen({
 
 
 TreeSearch.TreeCursor.reopen({
+  dirtyCursor: function() {
+    return this.reset();
+  },
+  dirtySubtree: function() {
+    var cursor, _i, _len, _ref;
+    _ref = this.get('children');
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      cursor = _ref[_i];
+      cursor.dirtySubtree();
+    }
+    return this.dirtyCursor();
+  },
+  dirtyChildren: function() {
+    var cursor, key, _i, _j, _len, _len1, _ref, _ref1, _results;
+    _ref = this.get('children');
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      cursor = _ref[_i];
+      cursor.dirtySubtree();
+    }
+    _ref1 = ['firstChild', '_children'];
+    _results = [];
+    for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+      key = _ref1[_j];
+      _results.push(this._clearCacheOfProperty(key));
+    }
+    return _results;
+  },
+  reset: function(preserved, properties) {
+    var _this = this;
+    if (preserved == null) {
+      preserved = ['root'];
+    }
+    if (properties == null) {
+      properties = {};
+    }
+    return Ember.changeProperties(function() {
+      var key, keys, value, _i, _len;
+      keys = _this.get('_namesOfCursorSpecificProperties');
+      keys = keys.reject(function(key) {
+        return preserved.contains(key);
+      });
+      for (_i = 0, _len = keys.length; _i < _len; _i++) {
+        key = keys[_i];
+        _this._clearCacheOfProperty(key);
+      }
+      for (key in properties) {
+        value = properties[key];
+        _this.set(key, value);
+      }
+      return _this;
+    });
+  },
   _memoizedPropertiesForKeys: function(propertyList) {
     var keysAndValues,
       _this = this;
@@ -265,28 +370,6 @@ TreeSearch.TreeCursor.reopen({
       }
     });
     return _.zipObject(_.compact(keysAndValues));
-  },
-  reset: function(preserved, properties) {
-    var key, keys, value, _i, _len;
-    if (preserved == null) {
-      preserved = ['root'];
-    }
-    if (properties == null) {
-      properties = {};
-    }
-    keys = this.get('_namesOfCursorSpecificProperties');
-    keys = keys.reject(function(key) {
-      return preserved.contains(key);
-    });
-    for (_i = 0, _len = keys.length; _i < _len; _i++) {
-      key = keys[_i];
-      this._clearCacheOfProperty(key);
-    }
-    for (key in properties) {
-      value = properties[key];
-      this.set(key, value);
-    }
-    return this;
   },
   _namesOfCursorSpecificProperties: (function() {
     return _.compact(this.eachComputedProperty(function(name, meta) {
@@ -353,28 +436,28 @@ TreeSearch.TreeCursor.reopen({
   parent: (function() {
     this._assertExistenceOfParentNodeAccessor();
     return this._createParent({
-      node: typeof this.findParentNode === "function" ? this.findParentNode() : void 0
+      node: typeof this.findParentNode === "function" ? this.findParentNode(this.node) : void 0
     });
   }).property().meta({
     cursorSpecific: true
   }),
   firstChild: (function() {
     return this._createFirstChild({
-      node: this.findFirstChildNode()
+      node: this.findFirstChildNode(this.node)
     });
   }).property().meta({
     cursorSpecific: true
   }),
   rightSibling: (function() {
     return this._createRightSibling({
-      node: this.findRightSiblingNode()
+      node: this.findRightSiblingNode(this.node)
     });
   }).property().meta({
     cursorSpecific: true
   }),
   leftSibling: (function() {
     return this._createLeftSibling({
-      node: typeof this.findLeftSiblingNode === "function" ? this.findLeftSiblingNode() : void 0
+      node: typeof this.findLeftSiblingNode === "function" ? this.findLeftSiblingNode(this.node) : void 0
     });
   }).property().meta({
     cursorSpecific: true
@@ -788,7 +871,7 @@ TreeSearch.Base.reopen({
   },
   method: TreeSearch.BFSWithQueue,
   shouldYieldSingleResult: false,
-  shouldIgnoreInitialNode: true,
+  shouldIgnoreInitialNode: false,
   direction: 'right',
   shouldStopSearch: function(node) {
     return false;
@@ -855,7 +938,8 @@ TreeSearch.Base.reopen({
   },
   _cursor: null,
   initialCursor: (function() {
-    return (this.get('cursorClass')).create({
+    var _ref;
+    return (_ref = this.get('initialNode.cursor')) != null ? _ref : (this.get('cursorClass')).create({
       node: this.get('initialNode')
     });
   }).property(),
@@ -869,12 +953,6 @@ TreeSearch.Base.reopen({
 
 
 TreeSearch.Traversable = Ember.Mixin.create({
-  cursor: (function() {
-    return (this.get('cursorClass')).create({
-      node: this
-    });
-  }).property(),
-  cursorClass: TreeSearch.TreeCursor,
   unknownProperty: function(key) {
     var value;
     value = this.get("cursor." + key);
@@ -886,15 +964,12 @@ TreeSearch.Traversable = Ember.Mixin.create({
       return value;
     }
   },
-  setUnknownProperty: function(key, value) {
-    var cursor;
-    if ((value != null ? value.get : void 0) != null) {
-      cursor = value.get('cursor');
-    }
-    if (cursor instanceof TreeSearch.TreeCursor) {
-      return this.set("cursor." + key, cursor);
-    }
-  }
+  cursor: (function() {
+    return (this.get('cursorClass')).create({
+      node: this
+    });
+  }).property(),
+  cursorClass: TreeSearch.TreeCursor
 });
 
 

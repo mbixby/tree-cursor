@@ -1,70 +1,32 @@
-# TreeNode
-# Represents perfect (fully saturated) binary tree
+require 'helpers/collectors'
 
-Helpers.TreeNode = Ember.Object.extend().reopenClass
-  
-  create: (properties = {}) ->
-    node = @_getFromSharedPool properties
-    node ?= do => 
-      node = @_super properties
-      @_saveToSharedPool node
+# Helpers.TreeNode
+# Represents an [ordered tree](http://en.wikipedia.org/wiki/Ordered_tree#ordered_tree)
+# 
+# Typical implementation of node type in Javascript would look like this:
+# ```
+# Helpers.TreeNode = function TreeNode(){}
+# Helpers.TreeNode.prototype.name = null
+# Helpers.TreeNode.prototype.childNodes = null # array
+# ```
+# You should understand:
+# 
+# * why do we subclass from Ember.Object
+# * why do we mix in TreeSearch.Traversable
+# * why do we specify #parentNode in addition to #childNodes (you won't
+#   find parentNode in mathematical definitions of nodes)
+# * why do we need to implement #cursorClass
+# * why don't we need to subclass from TreeSearch.ObjectWithSharedPool
 
-  _getFromSharedPool: (properties) ->
-    properties.nodePool?.get @_serializeIndex properties.index
+Helpers.TreeNode = Ember.Object.extend TreeSearch.Traversable,
 
-  _saveToSharedPool: (node) ->
-    (node.get 'nodePool').set (@_serializeIndex node.index), node
-    node
+  name: undefined
+  childNodes: undefined
+  parentNode: null
 
-  _serializeIndex: (index) ->
-    # It's just for testing...
-    "#{index[0]}-#{index[1]}"
-
-Helpers.TreeNode = Helpers.TreeNode.reopen TreeSearch.Traversable,
-  
-  # @type {String} ASCII art of the tree
-  ascii: null
-
-  # Tree stored in a matrix
-  tree: (->
-    string = (@get 'ascii').replace /[\/\n]/g, ''
-    string = string.replace /[ ]*/, ''
-    array = string.w()
-    matrix = @splitToLevels array
-  ).property()
-
-  # Tuple [level, positionInLevel] denoting position 
-  # of the node in this.tree
-  index: [0, 0]
-
-  # Number of levels
-  depthBinding: 'tree.length'
-  
-  toString: ->
-    @get 'name'
-
-  name: (->
-    index = @get 'index'
-    (@get 'tree')[ index[0] ][ index[1] ]
-  ).property()
-
-  # @param {Array} tree
-  splitToLevels: (array) ->
-    numberOfLevels = (Math.log (array.length + 1)) / Math.LN2
-    numberOfNodesAtLevel = (Math.pow 2, x for x in [0...numberOfLevels])
-    numberOfNodesAtLevel.map (count) ->
-      array.shift() while count--
-
-  cursorClass: (->
-    Helpers.ArrayTreeCursor
-  ).property()
-
-  # Object pool to assert uniqueness of nodes
-  nodePool: (->
-    Ember.Map.create()
-  ).property()
-
-  copy: (properties) -> 
-    @constructor.create Ember.merge properties,
-      tree: @get 'tree'
-      nodePool: @get 'nodePool'
+  # By mixing in TreeSearch.Traversable and providing custom cursorClass, 
+  # we'll gain all of TreeCursor's perks and features.
+  # @see TreeSearch.Traversable
+  cursorClass: TreeSearch.TreeCursor.extend
+    findChildNodes: (node) -> node.childNodes
+    findParentNode: (node) -> node.parentNode

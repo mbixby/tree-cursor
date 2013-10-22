@@ -1,5 +1,7 @@
+require 'tree_search/object_with_shared_pool'
+
 # TreeSearch.TreeCursor
-#
+# 
 # Provides a generic way of traversing trees (getting node's children, 
 # siblings, etc.). This essentially allows you to separate node-related data 
 # and logic regarding navigation between nodes. 
@@ -55,27 +57,23 @@
 # Functional Pearl: The Zipper, by Gerard Huet
 # J#. Functional Programming 7 (5): 549--554 Sepember 1997
 
-TreeSearch.TreeCursor = Ember.Object.extend().reopenClass
+TreeSearch.TreeCursor = TreeSearch.ObjectWithSharedPool.extend().reopenClass
   
   # Creating an invalid cursor returns null *or* the nearest valid cursor.
   # For more information about validation, see tree_cursor/validation.coffee
   # @returns {TreeCursor | null}
   create: (properties = {}) ->
     return null unless properties.node
-    cursor = do =>
-      cursor = @_getFromSharedPool properties
-      cursor?.setProperties properties
-    cursor ?= do => 
-      cursor = @_super properties
-      @_saveToSharedPool cursor
+    cursor = @_super properties
     cursor.get '_nearestValidCursor'
 
-  _getFromSharedPool: (properties) ->
-    properties.cursorPool?.get properties.node
+  # @overrides TreeSearch.ObjectWithSharedPool#keyForObject
+  keyForObject: (properties) -> 
+    properties.node
 
-  _saveToSharedPool: (cursor) ->
-    (cursor.get 'cursorPool').set cursor.node, cursor
-    cursor
+  # @overrides TreeSearch.ObjectWithSharedPool#sharedPoolForObject
+  sharedPoolForObject: (properties) ->
+    Ember.get properties, 'cursorPool'
 
 TreeSearch.TreeCursor.reopen Ember.Copyable, Ember.Freezable,
 
@@ -173,13 +171,19 @@ TreeSearch.TreeCursor.reopen Ember.Copyable, Ember.Freezable,
   #   when operating on immutable data or when adding abstract constraints 
   #   (see #copyWithNewValidator).
   # 
+  # TODO Clarify this comment (start with reasons for cursorPool, include case
+  # when you don't need to know about this – tree walked from root)
+  # 
   # @type Ember.Map (where keys are nodes; values its cursors)
   # @public
-  cursorPool: (->
-    Ember.Map.create()
-  ).property()
+  cursorPool: Ember.computed.alias 'sharedPool'
 
   # TODO Remove
   init: ->
     @_super.call this, arguments...
     @_translateChildNodesAccessor()
+
+  name: Ember.computed.oneWay 'node.name'
+
+  toString: ->
+    (@get 'name') ? @_super()

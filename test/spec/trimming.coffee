@@ -1,9 +1,9 @@
 describe "Trimming", ->
-  tree = Helpers.TreeNode.create ascii: """
+  tree = """
            A
-         /   \
-       B       C
-     /  \     / \
+         /   ∖
+       B       C 
+     /  ∖     /  ∖
     D    E   F    G
   """
 
@@ -17,15 +17,7 @@ describe "Trimming", ->
     trimming.perform()
 
   beforeEach ->
-    cursors = (Ember.Object.extend
-      "A": (-> Helpers.ArrayTreeCursor.create node: tree ).property()
-      "B": (-> @get 'A.firstChild' ).property()
-      "C": (-> @get 'A.lastChild' ).property()
-      "D": (-> @get 'B.firstChild' ).property()
-      "E": (-> @get 'B.lastChild' ).property()
-      "F": (-> @get 'C.firstChild' ).property()
-      "G": (-> @get 'C.lastChild' ).property()
-    ).create()
+    cursors = getListOfCursorsIn Helpers.AsciiTreeParser.parse tree
 
   describe "#trim", ->
     it "should copy and trim the tree", ->

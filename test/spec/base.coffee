@@ -1,11 +1,11 @@
 # TODO Test unbalanced trees
 
 describe "Base", ->
-  tree = Helpers.TreeNode.create ascii: """
+  tree = Helpers.AsciiTreeParser.parse """
            A
-         /   \
-       B       C
-     /  \     / \
+         /   ∖
+       B       C 
+     /  ∖     /  ∖
     D    E   F    G
   """
 
@@ -13,10 +13,8 @@ describe "Base", ->
 
   beforeEach ->
     Search = TreeSearch.Base.extend
-      cursorClass: Helpers.ArrayTreeCursor
       initialNode: tree
       method: TreeSearch.BFS
-      shouldIgnoreInitialNode: no
 
   describe "given a search with breadth-first algorithm", ->
     it "should visit nodes in correct order", ->

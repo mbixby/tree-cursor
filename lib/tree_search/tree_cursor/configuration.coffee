@@ -3,7 +3,7 @@
 # 
 # Implement these methods to define basic logic for retrieval 
 # of adjacent nodes. Please mind the type signature.
-# See TreeCursor class in DOMUtilities component for an example.
+# See Helpers.TreeNode for a specific example.
 # 
 # Important: You should not return multiple objects representing the same
 # node (one node => one Javascript object). Object equality is used
@@ -15,36 +15,43 @@
 
 TreeSearch.TreeCursor.reopen
   
+  # Should return `null` if the parent does not exist (not `undefined`).
+  # 
+  # Note that without this accessor, any child node will have no way 
+  # to independently look up their parent if the child node wasn't derived
+  # from root.
+  # By referencing parent from each node, each node represents the whole
+  # tree, not just its own subtree.
+  # 
   # @example
   # ```
-  #   findParentNode: -> (jQuery (@get 'node')).children()
+  #   findParentNode: (node) -> node.parentNode
   # ```
   # @protected
-  # Returns `null` if the parent does not exist (not `undefined`).
   # @type Function (-> Object | null)
   findParentNode: undefined
 
+  # Returns an empty array if there aren't any children (not `null`)
   # @example
   # ```
-  #   findChildNodes: -> (@get 'node').childNodes
+  #   findChildNodes: (node) -> node.childNodes
   # ```
   # @protected
-  # Returns an empty array if there aren't any children (not `null`)
   # @type Function (-> Array(Object))
   findChildNodes: undefined
 
-  # @protected
   # Returns `null` if the parent does not exist (not `undefined`).
+  # @protected
   # @type Function (-> Object)
   findFirstChildNode: undefined
 
-  # @protected
   # Returns `null` if the parent does not exist (not `undefined`).
+  # @protected
   # @type Function (-> Object)
   findRightSiblingNode: undefined
 
-  # @protected
   # Returns `null` if the parent does not exist (not `undefined`).
+  # @protected
   # @type Function (-> Object)
   findLeftSiblingNode: undefined
 
@@ -63,18 +70,18 @@ TreeSearch.TreeCursor.reopen
     @get '_childNodes.firstObject'
 
   _rightSiblingInChildNodes: ->
-    (@get 'parent._childNodes').objectAt @get '_indexInSiblingNodes' + 1
+    (@get 'parent._childNodes')?.objectAt (@get '_indexInSiblingNodes') + 1
 
   _leftSiblingInChildNodes: ->
-    (@get 'parent._childNodes').objectAt @get '_indexInSiblingNodes' - 1
+    (@get 'parent._childNodes')?.objectAt (@get '_indexInSiblingNodes') - 1
 
   # Memoized childNodes if #findChildNodes is available
   _childNodes: (-> 
-    @findChildNodes()
+    @findChildNodes @node
   ).property().meta cursorSpecific: yes
   
   # Index in #_childNodes
-  # TODO Implement
+  # TODO Remove, preload
   _indexInSiblingNodes: (-> 
-    (@get 'parent._childNodes').indexOf @get 'node'
+    (@get 'parent._childNodes').indexOf @node
   ).property().meta cursorSpecific: yes

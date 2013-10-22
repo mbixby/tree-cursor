@@ -1,5 +1,5 @@
 describe "Traversable", ->
-  tree = Helpers.TreeNode.create ascii: """
+  tree = Helpers.AsciiTreeParser.parse """
            A
          /   \
        B       C

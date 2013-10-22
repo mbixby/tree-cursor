@@ -10,8 +10,8 @@ require 'tree_search/tree_cursor/configuration'
 # `position.coffee` and `aliases.coffee`
 # 
 # Development notes: 
-# * properties should be organized in way that they are only dependent 
-#   on properties above them (for sake of clarity). 
+# * properties should be organized in a way that they are only dependent 
+#   on properties above them
 # * definitions of properties should be as declarative as possible
 # * definitions of properties should suppose that the current cursor 
 #   is isolated and doesn't have any information about adjacent cursors –
@@ -24,26 +24,26 @@ require 'tree_search/tree_cursor/configuration'
 # TODO Modification, dependencies, propagation of changes
 
 TreeSearch.TreeCursor.reopen
-  
+
   # @readonly
   # @type TreeCursor | null
   # @example `cursor.get 'parent' # ~> TreeCursor`
-  # TODO Make modifiable
+  # TODO Make dependent on leftSibling.parent
   parent: (->
     @_assertExistenceOfParentNodeAccessor()
-    @_createParent node: @findParentNode?()
+    @_createParent node: @findParentNode? @node
   ).property().meta cursorSpecific: yes 
 
   # @public
   # @type TreeCursor | null
   firstChild: (->
-    @_createFirstChild node: @findFirstChildNode()
+    @_createFirstChild node: @findFirstChildNode @node
   ).property().meta cursorSpecific: yes 
 
   # @readonly
   # @type TreeCursor | null
   rightSibling: (->
-    @_createRightSibling node: @findRightSiblingNode()
+    @_createRightSibling node: @findRightSiblingNode @node
   ).property().meta cursorSpecific: yes 
 
   # @readonly
@@ -52,7 +52,7 @@ TreeSearch.TreeCursor.reopen
   # isolated cursor (volatile / isol.) would be unable to retrieve
   # its left sibling
   leftSibling: (->
-    @_createLeftSibling node: @findLeftSiblingNode?()
+    @_createLeftSibling node: @findLeftSiblingNode? @node
   ).property().meta cursorSpecific: yes 
 
   # @readonly
@@ -101,12 +101,6 @@ TreeSearch.TreeCursor.reopen
   ).property('firstChild', 'firstChild.rightSiblings'
   ).meta cursorSpecific: yes 
 
-  # By setting an arbitrary root, you can constrain the tree cursor
-  # to a particular subtree. However, this is available only if it's not broken
-  # in your particular tree cursor implementation. See @findParent.
-  # TODO Every tree subclass must pass tests to make sure it implements 
-  # features like this
-  # 
   # @readonly
   # @type TreeCursor | null
   root: (->

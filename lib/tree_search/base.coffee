@@ -47,7 +47,7 @@ TreeSearch.Base.reopen
   shouldYieldSingleResult: no
 
   # If yes, the search skips over the root node 
-  shouldIgnoreInitialNode: yes
+  shouldIgnoreInitialNode: no
 
   # Direction of traversal
   # @type string 'right' | 'left'
@@ -153,6 +153,7 @@ TreeSearch.Base.reopen
   _cursor: null
 
   initialCursor: (->
+    (@get 'initialNode.cursor') ?
     (@get 'cursorClass').create
       node: @get 'initialNode'
   ).property()

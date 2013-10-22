@@ -15,16 +15,6 @@
 # ```
 
 TreeSearch.Traversable = Ember.Mixin.create
-  
-  # Pointer to this node
-  # @type TreeSearch.TreeCursor
-  cursor: (->
-    (@get 'cursorClass').create node: this
-  ).property()
-  
-  # You can provide your own TreeCursor subclass
-  # @abstract
-  cursorClass: TreeSearch.TreeCursor
 
   # Aliases public navigation properties from TreeCursor
   # and returns the actual node, not cursor. Note that nearly all
@@ -38,6 +28,19 @@ TreeSearch.Traversable = Ember.Mixin.create
     else
       value
 
-  setUnknownProperty: (key, value) ->
-    cursor = value.get 'cursor' if value?.get?
-    @set "cursor.#{key}", cursor if cursor instanceof TreeSearch.TreeCursor
+  # setUnknownProperty: (key, value) ->
+  #   cursor = value.get 'cursor' if value?.get?
+  #   only if cursor responds to key...
+  #     @set "cursor.#{key}", cursor if cursor instanceof TreeSearch.TreeCursor
+  #   else
+  #     @set key, value
+  
+  # Pointer to this node
+  # @type TreeSearch.TreeCursor
+  cursor: (->
+    (@get 'cursorClass').create node: this
+  ).property()
+  
+  # You can provide your own TreeCursor subclass
+  # @abstract
+  cursorClass: TreeSearch.TreeCursor
