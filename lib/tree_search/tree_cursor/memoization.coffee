@@ -20,33 +20,25 @@ TreeSearch.TreeCursor.reopen
   # Dirtying a node will clean its memoized properties (cached information
   # about its neighbors)
   # @public
-  dirtyCursor: ->
-    @reset()
+  resetCursor: ->
+    @resetProperties @_baseNeighborProperties
 
   # @public
-  dirtySubtree: ->
-    cursor.dirtySubtree() for cursor in @get 'children'
-    @dirtyCursor()
-
-  # @public
-  dirtyChildren: ->
-    cursor.dirtySubtree() for cursor in @get 'children'
-    # TODO This doesn't look well
-    @_clearCacheOfProperty key for key in ['firstChild', '_children']
-
-  # Resets cursor with new properties. Can be used instead of this.copy
-  # for performance reasons (to repurpose cursors).
-  # TODO Decouple tree-wide (#isVolatile) from cursor-specific
-  # configuration for straightforward removal of cursor-specific residue.
-  # 
-  # @param {Array ([String])} preserved keys of preserved properties
-  reset: (preserved = ['root'], properties = {}) ->
+  resetSubtree: ->
     Ember.changeProperties =>
-      keys = @get '_namesOfCursorSpecificProperties'
-      keys = keys.reject (key) -> preserved.contains key
-      @_clearCacheOfProperty key for key in keys
-      @set key, value for key, value of properties
-      this
+      cursor.resetSubtree() for cursor in @get 'children'
+      @resetCursor()
+
+  # @public
+  resetChildren: ->
+    Ember.changeProperties =>
+      cursor.resetSubtree() for cursor in @get 'children'
+      # TODO This doesn't look well
+      @resetProperties @_baseChildrenProperties
+
+  resetProperties: (keys) ->
+    Ember.changeProperties =>
+      @propertyDidChange key for key in keys
 
   # Constructs an object with memoized properties from the current
   # cursor. This can be passed to @create to preserve memoized properties
@@ -61,21 +53,22 @@ TreeSearch.TreeCursor.reopen
       [key, value] if value isnt undefined
     _.zipObject _.compact keysAndValues
 
-  # Important: the list contains only properties that were have been set 
-  # (via @set) on this object
-  _namesOfCursorSpecificProperties: (->
-    _.compact @eachComputedProperty (name, meta) -> 
-      name if meta.cursorSpecific
-  ).property().volatile()
+  # Neighbors from which other properties are inferred
+  # TODO Remove
+  _baseNeighborProperties: ['parent', 'firstChild', 'rightSibling', 'leftSibling', '_childNodes', '_indexInSiblingNodes']
+  
+  _baseChildrenProperties: ['firstChild', '_childNodes', '_indexInSiblingNodes']
 
   _getDescriptorOfProperty: (name) ->
-    prototype = @proto()
+    prototype = @constructor.proto()
     descriptors = (Ember.meta prototype).descs
     descriptors[name]
 
   _clearCacheOfProperty: (name) ->
-    descriptor = Ember.meta @_getDescriptorOfProperty name
-    delete meta.cache[keyName] if descriptor._cacheable
+    descriptor = @_getDescriptorOfProperty name
+    if descriptor._cacheable
+      meta = Ember.meta this, true
+      delete meta.cache[name]
 
   # Allows to peek at property cache. Unlike @cacheFor, this also looks
   # at keys defined on this object

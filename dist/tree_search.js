@@ -233,28 +233,28 @@ TreeSearch.TreeCursor.reopen({
   },
   _childNodes: (function() {
     return this.findChildNodes(this.node);
-  }).property().meta({
-    cursorSpecific: true
-  }),
+  }).property(),
   _indexInSiblingNodes: (function() {
-    return (this.get('parent._childNodes')).indexOf(this.node);
-  }).property().meta({
-    cursorSpecific: true
-  })
+    if (this.node === _.head(this.get('parent._childNodes'))) {
+      return 0;
+    } else {
+      if (this._isPropertyCachedOrDefined('leftSibling')) {
+        return (this.get('leftSibling._indexInSiblingNodes')) + 1;
+      } else {
+        return (this.get('parent._childNodes')).indexOf(this.node);
+      }
+    }
+  }).property()
 });
 
 
 TreeSearch.TreeCursor.reopen({
   branch: (function() {
     return _.flatten(_.compact([this, this.get('parent.branch')]));
-  }).property('parent.branch').meta({
-    cursorSpecific: true
-  }),
+  }).property('parent.branch'),
   depth: (function() {
     return (this.get('branch.length')) - 1;
-  }).property('branch').meta({
-    cursorSpecific: true
-  }),
+  }).property('branch'),
   findClosestCommonAncestorWithCursor: function(cursor) {
     var branches;
     branches = [this, cursor].map(function(c) {
@@ -304,56 +304,43 @@ TreeSearch.TreeCursor.reopen({
 
 
 TreeSearch.TreeCursor.reopen({
-  dirtyCursor: function() {
-    return this.reset();
+  resetCursor: function() {
+    return this.resetProperties(this._baseNeighborProperties);
   },
-  dirtySubtree: function() {
-    var cursor, _i, _len, _ref;
-    _ref = this.get('children');
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      cursor = _ref[_i];
-      cursor.dirtySubtree();
-    }
-    return this.dirtyCursor();
-  },
-  dirtyChildren: function() {
-    var cursor, key, _i, _j, _len, _len1, _ref, _ref1, _results;
-    _ref = this.get('children');
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      cursor = _ref[_i];
-      cursor.dirtySubtree();
-    }
-    _ref1 = ['firstChild', '_children'];
-    _results = [];
-    for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-      key = _ref1[_j];
-      _results.push(this._clearCacheOfProperty(key));
-    }
-    return _results;
-  },
-  reset: function(preserved, properties) {
+  resetSubtree: function() {
     var _this = this;
-    if (preserved == null) {
-      preserved = ['root'];
-    }
-    if (properties == null) {
-      properties = {};
-    }
     return Ember.changeProperties(function() {
-      var key, keys, value, _i, _len;
-      keys = _this.get('_namesOfCursorSpecificProperties');
-      keys = keys.reject(function(key) {
-        return preserved.contains(key);
-      });
+      var cursor, _i, _len, _ref;
+      _ref = _this.get('children');
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        cursor = _ref[_i];
+        cursor.resetSubtree();
+      }
+      return _this.resetCursor();
+    });
+  },
+  resetChildren: function() {
+    var _this = this;
+    return Ember.changeProperties(function() {
+      var cursor, _i, _len, _ref;
+      _ref = _this.get('children');
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        cursor = _ref[_i];
+        cursor.resetSubtree();
+      }
+      return _this.resetProperties(_this._baseChildrenProperties);
+    });
+  },
+  resetProperties: function(keys) {
+    var _this = this;
+    return Ember.changeProperties(function() {
+      var key, _i, _len, _results;
+      _results = [];
       for (_i = 0, _len = keys.length; _i < _len; _i++) {
         key = keys[_i];
-        _this._clearCacheOfProperty(key);
+        _results.push(_this.propertyDidChange(key));
       }
-      for (key in properties) {
-        value = properties[key];
-        _this.set(key, value);
-      }
-      return _this;
+      return _results;
     });
   },
   _memoizedPropertiesForKeys: function(propertyList) {
@@ -371,24 +358,20 @@ TreeSearch.TreeCursor.reopen({
     });
     return _.zipObject(_.compact(keysAndValues));
   },
-  _namesOfCursorSpecificProperties: (function() {
-    return _.compact(this.eachComputedProperty(function(name, meta) {
-      if (meta.cursorSpecific) {
-        return name;
-      }
-    }));
-  }).property().volatile(),
+  _baseNeighborProperties: ['parent', 'firstChild', 'rightSibling', 'leftSibling', '_childNodes', '_indexInSiblingNodes'],
+  _baseChildrenProperties: ['firstChild', '_childNodes', '_indexInSiblingNodes'],
   _getDescriptorOfProperty: function(name) {
     var descriptors, prototype;
-    prototype = this.proto();
+    prototype = this.constructor.proto();
     descriptors = (Ember.meta(prototype)).descs;
     return descriptors[name];
   },
   _clearCacheOfProperty: function(name) {
-    var descriptor;
-    descriptor = Ember.meta(this._getDescriptorOfProperty(name));
+    var descriptor, meta;
+    descriptor = this._getDescriptorOfProperty(name);
     if (descriptor._cacheable) {
-      return delete meta.cache[keyName];
+      meta = Ember.meta(this, true);
+      return delete meta.cache[name];
     }
   },
   _cachedOrDefinedProperty: function(name) {
@@ -433,94 +416,64 @@ TreeSearch.TreeCursor.reopen({
 
 
 TreeSearch.TreeCursor.reopen({
-  parent: (function() {
-    this._assertExistenceOfParentNodeAccessor();
-    return this._createParent({
-      node: typeof this.findParentNode === "function" ? this.findParentNode(this.node) : void 0
-    });
-  }).property().meta({
-    cursorSpecific: true
-  }),
   firstChild: (function() {
     return this._createFirstChild({
       node: this.findFirstChildNode(this.node)
     });
-  }).property().meta({
-    cursorSpecific: true
-  }),
+  }).property(),
   rightSibling: (function() {
     return this._createRightSibling({
       node: this.findRightSiblingNode(this.node)
     });
-  }).property().meta({
-    cursorSpecific: true
-  }),
+  }).property(),
   leftSibling: (function() {
     return this._createLeftSibling({
       node: typeof this.findLeftSiblingNode === "function" ? this.findLeftSiblingNode(this.node) : void 0
     });
-  }).property().meta({
-    cursorSpecific: true
-  }),
+  }).property(),
+  parent: (function() {
+    return this._createParent({
+      node: typeof this.findParentNode === "function" ? this.findParentNode(this.node) : void 0
+    });
+  }).property(),
   rightSiblings: (function() {
     var sibling;
     sibling = this.get('rightSibling');
     return _.flatten(_.compact([sibling, sibling != null ? sibling.get('rightSiblings') : void 0]));
-  }).property('rightSibling', 'rightSibling.rightSiblings').meta({
-    cursorSpecific: true
-  }),
+  }).property('rightSibling', 'rightSibling.rightSiblings'),
   leftSiblings: (function() {
     var sibling;
     sibling = this.get('leftSibling');
     return _.flatten(_.compact([sibling != null ? sibling.get('leftSiblings') : void 0, sibling]));
-  }).property('leftSibling', 'leftSibling.leftSiblings').meta({
-    cursorSpecific: true
-  }),
+  }).property('leftSibling', 'leftSibling.leftSiblings'),
   rightmostSibling: (function() {
     var _ref;
     return (_ref = this.get('rightSiblings.lastObject')) != null ? _ref : null;
-  }).property('rightSiblings.lastObject').meta({
-    cursorSpecific: true
-  }),
+  }).property('rightSiblings.lastObject'),
   leftmostSibling: (function() {
     var _ref;
     return (_ref = this.get('leftSiblings.firstObject')) != null ? _ref : null;
-  }).property('leftSiblings.firstObject').meta({
-    cursorSpecific: true
-  }),
+  }).property('leftSiblings.firstObject'),
   lastChild: (function() {
     var firstChild, _ref;
     firstChild = this.get('firstChild');
     return (_ref = firstChild != null ? firstChild.get('rightmostSibling') : void 0) != null ? _ref : firstChild;
-  }).property('firstChild', 'firstChild.rightmostSibling').meta({
-    cursorSpecific: true
-  }),
+  }).property('firstChild', 'firstChild.rightmostSibling'),
   children: (function() {
     var child;
     child = this.get('firstChild');
     return _.compact(_.flatten([child, child != null ? child.get('rightSiblings') : void 0]));
-  }).property('firstChild', 'firstChild.rightSiblings').meta({
-    cursorSpecific: true
-  }),
+  }).property('firstChild', 'firstChild.rightSiblings'),
   root: (function() {
     var _ref;
     return (_ref = this.get('parent.root')) != null ? _ref : this;
-  }).property('parent.root').meta({
-    cursorSpecific: true
-  }),
+  }).property('parent.root'),
   isLeaf: (function() {
     return !this.get('firstChild');
-  }).property('firstChild').meta({
-    cursorSpecific: true
-  }),
+  }).property('firstChild'),
   isRoot: (function() {
     return !this.get('parent');
-  }).property('root').meta({
-    cursorSpecific: true
-  }),
-  _assertExistenceOfParentNodeAccessor: function() {
-    return Ember.assert("Function findParentNode should be defined. For example if you were to copy any cursor and findParentNode wasn't defined, it would have no way to get back to root. (Because memoized adjacent cursors of the copied cursor would be deleted when copying and it would have to compute them again.)", this.findParentNode);
-  },
+  }).property('parent'),
   _validReplacementForNode: function() {
     return function() {
       var child, lastChild, rightSibling, _ref;
@@ -542,23 +495,20 @@ TreeSearch.TreeCursor.reopen({
   },
   _createFirstChild: function(properties) {
     return this.copy(this.treewideProperties, Em.merge(properties, {
-      parent: this,
       validReplacement: this._validReplacementForNode(),
+      parent: this,
       leftSibling: null
     }));
   },
-  _createSibling: function(properties) {
-    return this.copy(this.treewideProperties.concat(['parent']), Em.merge(properties, {
-      validReplacement: this._validReplacementForNode()
-    }));
-  },
   _createLeftSibling: function(properties) {
-    return this._createSibling(Em.merge(properties, {
+    return this.copy(this.treewideProperties, Em.merge(properties, {
+      validReplacement: this._validReplacementForNode(),
       rightSibling: this
     }));
   },
   _createRightSibling: function(properties) {
-    return this._createSibling(Em.merge(properties, {
+    return this.copy(this.treewideProperties, Em.merge(properties, {
+      validReplacement: this._validReplacementForNode(),
       leftSibling: this
     }));
   }
@@ -627,27 +577,19 @@ TreeSearch.TreeCursor.reopen({
   upwardSuccessor: (function() {
     var _ref;
     return (_ref = this.get('parent.rightSibling')) != null ? _ref : this.get('parent.upwardSuccessor');
-  }).property('parent.rightSibling', 'parent.upwardSuccessor').meta({
-    cursorSpecific: true
-  }),
+  }).property('parent.rightSibling', 'parent.upwardSuccessor'),
   upwardPredecessor: (function() {
     var _ref;
     return (_ref = this.get('parent.leftSibling')) != null ? _ref : this.get('parent.upwardPredecessor');
-  }).property('parent.leftSibling', 'parent.upwardPredecessor').meta({
-    cursorSpecific: true
-  }),
+  }).property('parent.leftSibling', 'parent.upwardPredecessor'),
   successor: (function() {
     var _ref, _ref1;
     return (_ref = (_ref1 = this.get('firstChild')) != null ? _ref1 : this.get('rightSibling')) != null ? _ref : this.get('upwardSuccessor');
-  }).property('firstChild', 'rightSibling', 'upwardSuccessor').meta({
-    cursorSpecific: true
-  }),
+  }).property('firstChild', 'rightSibling', 'upwardSuccessor'),
   predecessor: (function() {
     var _ref, _ref1;
     return (_ref = (_ref1 = this.get('lastChild')) != null ? _ref1 : this.get('leftSibling')) != null ? _ref : this.get('upwardPredecessor');
-  }).property('lastChild', 'leftSibling', 'upwardPredecessor').meta({
-    cursorSpecific: true
-  }),
+  }).property('lastChild', 'leftSibling', 'upwardPredecessor'),
   findCursorAndItsRelativeDepth: function(propertyName, depth) {
     var cursor;
     if (depth == null) {
@@ -682,14 +624,10 @@ TreeSearch.TreeCursor.reopen({
   },
   successorAtSameDepth: (function() {
     return this.findSuccessorAtDepth(this.get('depth'));
-  }).property().volatile().meta({
-    cursorSpecific: true
-  }),
+  }).property().volatile(),
   predecessorAtSameDepth: (function() {
     return this.findPredecessorAtDepth(this.get('depth'));
-  }).property().volatile().meta({
-    cursorSpecific: true
-  }),
+  }).property().volatile(),
   leafSuccessor: (function() {
     var succ;
     if (succ = this.get("successor")) {
@@ -701,9 +639,7 @@ TreeSearch.TreeCursor.reopen({
     } else {
       return null;
     }
-  }).property('successor', 'successor.isLeaf', 'successor.leafSuccessor').meta({
-    cursorSpecific: true
-  }),
+  }).property('successor', 'successor.isLeaf', 'successor.leafSuccessor'),
   leafPredecessor: (function() {
     var pred;
     if (pred = this.get("predecessor")) {
@@ -715,9 +651,7 @@ TreeSearch.TreeCursor.reopen({
     } else {
       return null;
     }
-  }).property('predecessor', 'predecessor.isLeaf', 'predecessor.leafSuccessor').meta({
-    cursorSpecific: true
-  })
+  }).property('predecessor', 'predecessor.isLeaf', 'predecessor.leafSuccessor')
 });
 
 

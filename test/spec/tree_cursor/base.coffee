@@ -24,7 +24,6 @@ describe "TreeCursor (base)", ->
       strayCursor = Cursor.create
         node: cursors.get "C.node"
         cursorPool: cursors.get "C.cursorPool"
-      debugger
       expect(strayCursor._cachedOrDefinedProperty 'parent').to.not.be.defined
       expect(strayCursor.get 'parent').to.equal cursors.get "A"
 

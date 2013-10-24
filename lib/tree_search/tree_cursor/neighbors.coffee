@@ -25,26 +25,19 @@ require 'tree_search/tree_cursor/configuration'
 
 TreeSearch.TreeCursor.reopen
 
-  # @readonly
-  # @type TreeCursor | null
-  # @example `cursor.get 'parent' # ~> TreeCursor`
-  # TODO Make dependent on leftSibling.parent
-  parent: (->
-    @_assertExistenceOfParentNodeAccessor()
-    @_createParent node: @findParentNode? @node
-  ).property().meta cursorSpecific: yes 
-
   # @public
   # @type TreeCursor | null
+  # TODO Implement with #children when circ. dependencies are implemented
   firstChild: (->
     @_createFirstChild node: @findFirstChildNode @node
-  ).property().meta cursorSpecific: yes 
+  ).property() 
 
   # @readonly
   # @type TreeCursor | null
+  # TODO Implement with #children when circ. dependencies are implemented
   rightSibling: (->
     @_createRightSibling node: @findRightSiblingNode @node
-  ).property().meta cursorSpecific: yes 
+  ).property() 
 
   # @readonly
   # @type TreeCursor | null
@@ -53,85 +46,81 @@ TreeSearch.TreeCursor.reopen
   # its left sibling
   leftSibling: (->
     @_createLeftSibling node: @findLeftSiblingNode? @node
-  ).property().meta cursorSpecific: yes 
+  ).property() 
+
+  # @readonly
+  # @type TreeCursor | null
+  # @example `cursor.get 'parent' # ~> TreeCursor`
+  # TODO make dependent on leftSibling.parent (problems with findChildNodes)
+  parent: (->
+    @_createParent node: @findParentNode? @node
+  ).property()
 
   # @readonly
   # @type Array ([TreeCursor])
   rightSiblings: (->
     sibling = @get 'rightSibling'
     _.flatten _.compact [sibling, (sibling?.get 'rightSiblings')]
-  ).property('rightSibling', 'rightSibling.rightSiblings'
-  ).meta cursorSpecific: yes 
+  ).property('rightSibling', 'rightSibling.rightSiblings')
 
   # @readonly
   # @type Array ([TreeCursor])
   leftSiblings: (->
     sibling = @get 'leftSibling'
     _.flatten _.compact [(sibling?.get 'leftSiblings'), sibling]
-  ).property('leftSibling', 'leftSibling.leftSiblings'
-  ).meta cursorSpecific: yes 
+  ).property('leftSibling', 'leftSibling.leftSiblings')
 
   # @readonly
   # @type TreeCursor | null
   rightmostSibling: (->
     (@get 'rightSiblings.lastObject') ? null
-  ).property('rightSiblings.lastObject'
-  ).meta cursorSpecific: yes 
+  ).property('rightSiblings.lastObject')
 
   # @readonly
   # @type TreeCursor | null
   leftmostSibling: (->
     (@get 'leftSiblings.firstObject') ? null
-  ).property('leftSiblings.firstObject'
-  ).meta cursorSpecific: yes 
+  ).property('leftSiblings.firstObject')
 
   # @readonly
   # @type TreeCursor | null
   lastChild: (->
     firstChild = @get 'firstChild'
     (firstChild?.get 'rightmostSibling') ? firstChild
-  ).property('firstChild', 'firstChild.rightmostSibling'
-  ).meta cursorSpecific: yes 
+  ).property('firstChild', 'firstChild.rightmostSibling')
 
   # @readonly
   # @type Array (TreeCursor)
   children: (->
     child = @get 'firstChild'
     _.compact _.flatten [child, child?.get 'rightSiblings']
-  ).property('firstChild', 'firstChild.rightSiblings'
-  ).meta cursorSpecific: yes 
+  ).property('firstChild', 'firstChild.rightSiblings')
 
   # @readonly
   # @type TreeCursor | null
   root: (->
     (@get 'parent.root') ? this
-  ).property('parent.root'
-  ).meta cursorSpecific: yes 
+  ).property('parent.root')
 
   # @readonly
   isLeaf: (->
     not @get 'firstChild'
-  ).property('firstChild'
-  ).meta cursorSpecific: yes 
+  ).property('firstChild')
 
   # @readonly
   isRoot: (->
     not @get 'parent'
-  ).property('root'
-  ).meta cursorSpecific: yes 
+  ).property('parent')
 
 
   # Private
-
-  # TODO Clarify
-  _assertExistenceOfParentNodeAccessor: ->
-    Ember.assert "Function findParentNode should be defined. For example if you were to copy any cursor and findParentNode wasn't defined, it would have no way to get back to root. (Because memoized adjacent cursors of the copied cursor would be deleted when copying and it would have to compute them again.)", @findParentNode
 
   # @type Function (String -> Function)
   # Default behavior for replacing an invalid node is to replace
   # the node with its children.
   # TODO What if the node becomes valid again. Is some information lost?
   # TODO Is memoized parent.children updated?
+  # TODO Refactor when cursor manipulation is implemented
   _validReplacementForNode: -> 
     ->
       if child = @get "firstChild"
@@ -145,7 +134,6 @@ TreeSearch.TreeCursor.reopen
       else
         @get "rightSibling"
 
-  # TODO Copy information about this cursor (?)
   _createParent: (properties) ->
     @copy @treewideProperties, Em.merge properties,
       # Example of validReplacement: This cursor asked for its parent, but 
@@ -154,16 +142,16 @@ TreeSearch.TreeCursor.reopen
 
   _createFirstChild: (properties) ->
     @copy @treewideProperties, Em.merge properties, 
-      parent: this
       validReplacement: @_validReplacementForNode()
+      parent: this
       leftSibling: null
 
-  _createSibling: (properties) ->
-    @copy (@treewideProperties.concat ['parent']), Em.merge properties, 
-      validReplacement: @_validReplacementForNode()
-
   _createLeftSibling: (properties) ->
-    @_createSibling Em.merge properties, rightSibling: this
+    @copy @treewideProperties, Em.merge properties, 
+      validReplacement: @_validReplacementForNode()
+      rightSibling: this
 
   _createRightSibling: (properties) ->
-    @_createSibling Em.merge properties, leftSibling: this
+    @copy @treewideProperties, Em.merge properties, 
+      validReplacement: @_validReplacementForNode()
+      leftSibling: this

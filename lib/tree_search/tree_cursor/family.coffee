@@ -15,14 +15,14 @@ TreeSearch.TreeCursor.reopen
   # @type TreeCursor | null
   branch: (->
     _.flatten _.compact [this, (@get 'parent.branch')]
-  ).property('parent.branch').meta cursorSpecific: yes
+  ).property('parent.branch')
   
   # Distance from the root (root being at depth 0)
   # @type Number (0 <= x <= Infinity)
   # @readonly
   depth: (->
     (@get 'branch.length') - 1
-  ).property('branch').meta cursorSpecific: yes
+  ).property('branch')
 
   # @type Function (TreeCursor -> TreeCursor | undefined)
   # Undefined return value can mean the cursors are not in the same tree.

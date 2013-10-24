@@ -37,7 +37,6 @@ describe "TreeCursor (family)", ->
     it "should find childBelongingToBranch", ->
       parent = cursors.get "A"
       branch = cursors.get "G.branch"
-      debugger
       actual = parent.findChildBelongingToBranch branch
       expect(actual.get 'name').to.equal "C"
 

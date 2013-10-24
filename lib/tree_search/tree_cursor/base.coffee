@@ -183,6 +183,8 @@ TreeSearch.TreeCursor.reopen Ember.Copyable, Ember.Freezable,
     @_super.call this, arguments...
     @_translateChildNodesAccessor()
 
+  # Name of the cursor
+  # @type string
   name: Ember.computed.oneWay 'node.name'
 
   toString: ->
