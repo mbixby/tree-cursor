@@ -3,7 +3,7 @@
 # 
 # Implement these methods to define basic logic for retrieval 
 # of adjacent nodes. Please mind the type signature.
-# See Helpers.TreeNode for a specific example.
+# See Helpers.Node for a specific example.
 # 
 # Important: You should not return multiple objects representing the same
 # node (one node => one Javascript object). Object equality is used

@@ -6,7 +6,7 @@
 
 Helpers.AsciiTreeParser = Ember.Object.extend().reopenClass
   
-  # @returns {Helpers.TreeNode} root 
+  # @returns {Helpers.Node} root 
   parse: (ascii) ->
     return unless ascii
     lines = ascii.split '\n'
@@ -29,7 +29,7 @@ Helpers.AsciiTreeParser = Ember.Object.extend().reopenClass
   createNodes: (nodes) ->
     nodePool = Ember.Map.create()
     nodes.map (nodeName) ->
-      Helpers.TreeNode.create
+      Helpers.Node.create
         name: nodeName
         nodePool: nodePool
 

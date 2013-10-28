@@ -1,13 +1,13 @@
 require 'helpers/collectors'
 
-# Helpers.TreeNode
+# Helpers.Node
 # Represents an [ordered tree](http://en.wikipedia.org/wiki/Ordered_tree#ordered_tree)
 # 
 # Typical implementation of node type in Javascript would look like this:
 # ```
-# Helpers.TreeNode = function TreeNode(){}
-# Helpers.TreeNode.prototype.name = null
-# Helpers.TreeNode.prototype.childNodes = null # array
+# Helpers.Node = function TreeNode(){}
+# Helpers.Node.prototype.name = null
+# Helpers.Node.prototype.childNodes = null # array
 # ```
 # You should understand:
 # 
@@ -18,7 +18,7 @@ require 'helpers/collectors'
 # * why do we need to implement #cursorClass
 # * why don't we need to subclass from TreeSearch.ObjectWithSharedPool
 
-Helpers.TreeNode = Ember.Object.extend TreeSearch.Traversable,
+Helpers.Node = Ember.Object.extend TreeSearch.Traversable,
 
   name: undefined
   childNodes: undefined
