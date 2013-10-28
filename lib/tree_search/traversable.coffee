@@ -1,4 +1,5 @@
 # TreeSearch.Traversable
+# 
 # By applying the mixin into a node class, the class gains all the navigation
 # properties from TreeCursor, while cursors itself stay abstracted away.
 # 
@@ -13,6 +14,9 @@
 # node = Node.create()
 # node.get 'parent' #=> now returns memoized parent
 # ```
+# 
+# The tree is defined by root node's #cursor (all cursors will share 
+# its cursorPool)
 
 TreeSearch.Traversable = Ember.Mixin.create
 
@@ -38,8 +42,17 @@ TreeSearch.Traversable = Ember.Mixin.create
   # Pointer to this node
   # @type TreeSearch.TreeCursor
   cursor: (->
-    (@get 'cursorClass').create node: this
+    cursor = (@get 'cursorClass').create node: this
+    rootNode = (@get 'rootNode') ? cursor.get 'root.node'
+    if this is @get 'rootNode'
+      cursor
+    else
+      cursor.copyIntoTree @get 'rootNode.cursor'
   ).property()
+
+  # Optional direct link to root node
+  # @see #cursor
+  rootNode: undefined
   
   # You can provide your own TreeCursor subclass
   # @abstract

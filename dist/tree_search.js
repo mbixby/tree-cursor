@@ -899,10 +899,18 @@ TreeSearch.Traversable = Ember.Mixin.create({
     }
   },
   cursor: (function() {
-    return (this.get('cursorClass')).create({
+    var cursor, rootNode, _ref;
+    cursor = (this.get('cursorClass')).create({
       node: this
     });
+    rootNode = (_ref = this.get('rootNode')) != null ? _ref : cursor.get('root.node');
+    if (this === this.get('rootNode')) {
+      return cursor;
+    } else {
+      return cursor.copyIntoTree(this.get('rootNode.cursor'));
+    }
   }).property(),
+  rootNode: void 0,
   cursorClass: TreeSearch.TreeCursor
 });
 

@@ -19,3 +19,7 @@ describe "Traversable", ->
   it "should alias properties with type that's not TreeCursor", ->
     expect(tree.get 'isVolatile').to.equal no
 
+  it "should create cursors in the same cursor pool", ->
+    fellow = tree.get 'firstChild.node.cursor'
+    expect(tree.get 'cursorPool').to.equal fellow.get 'cursorPool'
+
