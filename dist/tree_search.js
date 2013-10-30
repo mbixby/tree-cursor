@@ -88,9 +88,9 @@ TreeSearch.ObjectWithSharedPool = Ember.Object.extend().reopenClass({
       properties = {};
     }
     if (object = this.getFromSharedPool(properties)) {
-      return object != null ? object.setProperties(properties) : void 0;
+      return typeof object.setProperties === "function" ? object.setProperties(properties) : void 0;
     } else {
-      object = this._super.apply(this, arguments);
+      object = this._super(properties);
       return this.saveToSharedPool(object);
     }
   },
@@ -103,6 +103,12 @@ TreeSearch.ObjectWithSharedPool = Ember.Object.extend().reopenClass({
     var sharedPool;
     sharedPool = this.sharedPoolForObject(object);
     sharedPool.set(this.keyForObject(object), object);
+    return object;
+  },
+  removeFromSharedPool: function(object) {
+    var sharedPool;
+    sharedPool = this.sharedPoolForObject(object);
+    sharedPool.remove(this.keyForObject(object));
     return object;
   },
   keyForObject: function(properties) {
@@ -889,6 +895,9 @@ TreeSearch.Base.reopen({
 TreeSearch.Traversable = Ember.Mixin.create({
   unknownProperty: function(key) {
     var value;
+    if (['rootNode', 'cursorClass'].contains(key)) {
+      return;
+    }
     value = this.get("cursor." + key);
     if (value instanceof TreeSearch.TreeCursor) {
       return value.get('node');
@@ -904,10 +913,10 @@ TreeSearch.Traversable = Ember.Mixin.create({
       node: this
     });
     rootNode = (_ref = this.get('rootNode')) != null ? _ref : cursor.get('root.node');
-    if (this === this.get('rootNode')) {
+    if (this === rootNode) {
       return cursor;
     } else {
-      return cursor.copyIntoTree(this.get('rootNode.cursor'));
+      return cursor.copyIntoTree(rootNode.get('cursor'));
     }
   }).property(),
   rootNode: void 0,
@@ -930,7 +939,7 @@ TreeSearch.Trimming.reopen({
   everythingRightOfBranch: Ember.computed.alias('rightBoundary'),
   perform: function() {
     var root;
-    this.expandBoundariesToNearestLeaves();
+    this._coalesceBoundariesOnTheSameBranch();
     root = (this.get('leftBoundary.root')).copyIntoNewTree({}, this.get('_cursorClass'));
     return root.copyWithNewValidator(this.get('_validator'));
   },
@@ -945,7 +954,7 @@ TreeSearch.Trimming.reopen({
     });
   }).property(),
   _isCursorInsideBoundaries: function(cursor) {
-    return (cursor.get('_isInsideOfLeftBoundary')) && cursor.get('_isInsideOfRightBoundary');
+    return (cursor.get('_isInsideOfLeftBoundary')) && (cursor.get('_isInsideOfRightBoundary')) && (!cursor.get('_isDescendantOfBoundary'));
   },
   _cursorClass: (function() {
     var trimming;
@@ -967,23 +976,21 @@ TreeSearch.Trimming.reopen({
       }).property('rightSuccessor._isInsideOfRightBoundary'),
       _isInsideOfBoundary: function(direction) {
         return ((this.get("_" + direction + "Boundary.branch")).contains(this)) || (this.get("" + direction + "Successor._isInsideOf" + (direction.capitalize()) + "Boundary"));
-      }
+      },
+      _isDescendantOfBoundary: (function() {
+        var _ref, _ref1;
+        return ((_ref = this.get('parent.branch')) != null ? _ref.contains(this.get('_leftBoundary')) : void 0) || ((_ref1 = this.get('parent.branch')) != null ? _ref1.contains(this.get('_rightBoundary')) : void 0);
+      }).property('parent.branch')
     });
   }).property(),
-  expandBoundariesToNearestLeaves: function() {
-    var boundary, direction, leaf, _i, _len, _ref, _results;
-    _ref = ['left', 'right'];
-    _results = [];
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      direction = _ref[_i];
-      boundary = this.get("" + direction + "Boundary");
-      if (!boundary.get('isLeaf')) {
-        leaf = boundary.get("" + (direction.opposite()) + "LeafSuccessor");
-        _results.push(this.set("" + direction + "Boundary", leaf));
-      } else {
-        _results.push(void 0);
-      }
+  _coalesceBoundariesOnTheSameBranch: function() {
+    var ancestor;
+    ancestor = (this.get('leftBoundary')).findClosestCommonAncestorWithCursor(this.get('rightBoundary'));
+    if (ancestor === this.get('leftBoundary')) {
+      this.set('leftBoundary', this.get('rightBoundary'));
     }
-    return _results;
+    if (ancestor === this.get('rightBoundary')) {
+      return this.set('rightBoundary', this.get('leftBoundary'));
+    }
   }
 });
