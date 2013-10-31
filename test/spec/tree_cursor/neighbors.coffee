@@ -51,10 +51,6 @@ describe "TreeCursor (neighbors and successors)", ->
       cache = (cursors.get "B")._cachedOrDefinedProperty "leftSibling"
       expect(cache).to.equal null
 
-    it "should not memoize non-existent value", ->
-      cache = (cursors.get "A")._cachedOrDefinedProperty "parent"
-      expect(cache).to.equal undefined
-
     it "should memoize preceding sibling", ->
       cache = (cursors.get "C")._cachedOrDefinedProperty "leftSibling"
       expect(cache).to.equal cursors.get 'B'
