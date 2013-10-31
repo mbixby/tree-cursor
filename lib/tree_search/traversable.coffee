@@ -24,6 +24,8 @@ TreeSearch.Traversable = Ember.Mixin.create
   # and returns the actual node, not cursor. Note that nearly all
   # such properties are read-only.
   unknownProperty: (key) ->
+    if ['rootNode', 'cursorClass'].contains key
+      return
     value = @get "cursor.#{key}"
     if value instanceof TreeSearch.TreeCursor
       value.get 'node'
@@ -44,10 +46,10 @@ TreeSearch.Traversable = Ember.Mixin.create
   cursor: (->
     cursor = (@get 'cursorClass').create node: this
     rootNode = (@get 'rootNode') ? cursor.get 'root.node'
-    if this is @get 'rootNode'
+    if this is rootNode
       cursor
     else
-      cursor.copyIntoTree @get 'rootNode.cursor'
+      cursor.copyIntoTree rootNode.get 'cursor'
   ).property()
 
   # Optional direct link to root node
