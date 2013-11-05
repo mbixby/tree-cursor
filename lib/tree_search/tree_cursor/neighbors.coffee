@@ -147,11 +147,11 @@ TreeSearch.TreeCursor.reopen
       leftSibling: null
 
   _createLeftSibling: (properties) ->
-    @copy @treewideProperties, Em.merge properties, 
+    @copy (@treewideProperties.concat ['parent']), Em.merge properties, 
       validReplacement: @_validReplacementForNode()
       rightSibling: this
 
   _createRightSibling: (properties) ->
-    @copy @treewideProperties, Em.merge properties, 
+    @copy (@treewideProperties.concat ['parent']), Em.merge properties, 
       validReplacement: @_validReplacementForNode()
       leftSibling: this

@@ -16,7 +16,7 @@ describe "Base", ->
       initialNode: tree
       method: TreeSearch.BFS
 
-  describe "given a search with breadth-first algorithm", ->
+  describe "when searching breadth-first", ->
     it "should visit nodes in correct order", ->
       result = Search.createAndPerform()
       expect(getJoinedNamesOfNodes result).to.equal "A B C D E F G"
@@ -37,7 +37,7 @@ describe "Base", ->
         direction: 'left'
       expect(getJoinedNamesOfNodes result).to.equal "A C B G F E D"
 
-  describe "given a search with depth-first algorithm", ->
+  describe "when searching depth-first", ->
     beforeEach -> 
       Search.reopen { method: TreeSearch.DFS }
 
