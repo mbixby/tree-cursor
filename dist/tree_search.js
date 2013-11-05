@@ -267,7 +267,7 @@ TreeSearch.TreeCursor.reopen({
     } else {
       return 1 + _.max((this.get('children')).mapProperty('height'));
     }
-  }).property('leafDescendants'),
+  }).property('isLeaf', 'children.@each.height'),
   findClosestCommonAncestorWithCursor: function(cursor) {
     var branches;
     branches = [this, cursor].map(function(c) {

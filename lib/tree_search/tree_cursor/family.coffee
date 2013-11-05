@@ -4,15 +4,14 @@
 # Notable properties:
 # * `depth`
 # * `branch`
-#   
-# Definitions of properties below should be implied by their declaration
-# (implementation)
+# 
+# Definitions roughly from Cormen et al.: Introduction to Algorithms
 
 TreeSearch.TreeCursor.reopen
 
   # List of this cursor and its parent cursors up to root
-  # @readonly
   # @type TreeCursor | null
+  # @readonly
   branch: (->
     _.flatten _.compact [this, (@get 'parent.branch')]
   ).property('parent.branch')
@@ -24,8 +23,18 @@ TreeSearch.TreeCursor.reopen
     (@get 'branch.length') - 1
   ).property('branch')
 
+  # Number of edges on the longest downward simple path to a leaf
+  # @type Number (0 <= x <= Infinity)
+  # @readonly
+  height: (->
+    if @get 'isLeaf'
+      0
+    else
+      1 + _.max (@get 'children').mapProperty 'height'
+  ).property('isLeaf', 'children.@each.height')
+
   # @type Function (TreeCursor -> TreeCursor | undefined)
-  # Undefined return value can mean the cursors are not in the same tree.
+  # @return undefined if the cursors are not in the same tree
   # @public
   findClosestCommonAncestorWithCursor: (cursor) ->
     branches = [this, cursor].map (c) -> 
@@ -43,7 +52,7 @@ TreeSearch.TreeCursor.reopen
 
   # Returns a child that belongs to a given branch
   # @type Function (Array ([TreeCursor]) -> TreeCursor | undefined)
-  # Undefined return value can mean the cursors are not in the same tree.
+  # @return undefined if the cursors are not in the same tree
   # @public
   findChildBelongingToBranch: (branch) ->
     for candidate in branch
@@ -54,9 +63,11 @@ TreeSearch.TreeCursor.reopen
   #   – C and D are ancestors of A and B, respectively
   #   – C and D are siblings
   #   – (therefore C, D are children of the closest common ancestor of A and B)
-  #   
+  # 
+  # Note that A, B can equal C, D respectively and that C can equal D.
+  # 
   # @type Function (TreeCursor -> [TreeCursor, TreeCursor] | undefined)
-  # Undefined return value can mean the cursors are not in the same tree.
+  # @return undefined if the cursors are not in the same tree
   # @public
   findClosestSiblingAncestorsWithCursor: (cursor) -> 
     [a, b] = [this, cursor]

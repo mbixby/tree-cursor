@@ -20,6 +20,11 @@ describe "TreeCursor (family)", ->
     it "should find depth", ->
       expect(cursors.get "E.depth").to.equal 2
 
+  describe "#height", ->
+    it "should find height", ->
+      expect(cursors.get "E.height").to.equal 0
+      expect(cursors.get "A.height").to.equal 2
+
   describe "#findClosestCommonAncestorWithCursor", ->
     it "should find closestCommonAncestorWithCursor", ->
       examples = Helpers.Examples.create string: """
