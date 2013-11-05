@@ -261,6 +261,13 @@ TreeSearch.TreeCursor.reopen({
   depth: (function() {
     return (this.get('branch.length')) - 1;
   }).property('branch'),
+  height: (function() {
+    if (this.get('isLeaf')) {
+      return 0;
+    } else {
+      return 1 + _.max((this.get('children')).mapProperty('height'));
+    }
+  }).property('leafDescendants'),
   findClosestCommonAncestorWithCursor: function(cursor) {
     var branches;
     branches = [this, cursor].map(function(c) {
@@ -507,13 +514,13 @@ TreeSearch.TreeCursor.reopen({
     }));
   },
   _createLeftSibling: function(properties) {
-    return this.copy(this.treewideProperties, Em.merge(properties, {
+    return this.copy(this.treewideProperties.concat(['parent']), Em.merge(properties, {
       validReplacement: this._validReplacementForNode(),
       rightSibling: this
     }));
   },
   _createRightSibling: function(properties) {
-    return this.copy(this.treewideProperties, Em.merge(properties, {
+    return this.copy(this.treewideProperties.concat(['parent']), Em.merge(properties, {
       validReplacement: this._validReplacementForNode(),
       leftSibling: this
     }));
@@ -543,18 +550,24 @@ TreeSearch.TreeCursor.reopen({
     }
   },
   determinePositionAgainstSibling: function(sibling) {
-    var candidate, direction, _i, _len, _ref;
+    var left, nextSiblingPair, right, siblingPair;
     if (!sibling) {
       return void 0;
     }
-    _ref = ['left', 'right'];
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      direction = _ref[_i];
-      while (candidate = (candidate != null ? candidate : this).get("" + (direction.opposite()) + "Sibling")) {
-        if (candidate === sibling) {
-          return direction;
-        }
+    nextSiblingPair = function(_arg) {
+      var left, right;
+      left = _arg[0], right = _arg[1];
+      return [left != null ? left.get('leftSibling') : void 0, right != null ? right.get('rightSibling') : void 0];
+    };
+    siblingPair = [this, this];
+    while ((left = siblingPair[0], right = siblingPair[1], siblingPair) && (left || right)) {
+      if (sibling === left) {
+        return 'right';
       }
+      if (sibling === right) {
+        return 'left';
+      }
+      siblingPair = nextSiblingPair(siblingPair);
     }
     return void 0;
   },

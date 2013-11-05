@@ -40,15 +40,25 @@ TreeSearch.TreeCursor.reopen
       [a, b] = ancestors
       a?.determinePositionAgainstSibling b
 
-  # Undefined return value means that the sibling is in fact not
+  # @example 
+  #   `A.determinePositionAgainstSibling B #=> 'left' if A is amongst 
+  #   left Siblings of B`
   # @type Function (TreeCursor -> String ('left' | 'right' | undefined))
   # @param sibling sibling of this cursor
+  # @return {'left' | 'right' | undefined} undefined if this is sibling 
+  #   or the sibling is not amongst this node's siblings
   # @public
   determinePositionAgainstSibling: (sibling) ->
     return undefined unless sibling
-    for direction in ['left', 'right'] 
-      while candidate = (candidate ? this).get "#{direction.opposite()}Sibling"
-        return direction if candidate is sibling
+    # Search outwards – optimized for the closest nodes
+    nextSiblingPair = ([left, right]) ->
+      [(left?.get 'leftSibling'), (right?.get 'rightSibling')]
+    
+    siblingPair = [this, this]
+    while ([left, right] = siblingPair) and (left or right)
+      return 'right' if sibling is left
+      return 'left' if sibling is right
+      siblingPair = (nextSiblingPair siblingPair)
     undefined
 
   # TODO Review
