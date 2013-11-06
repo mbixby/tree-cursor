@@ -93,33 +93,25 @@ TreeSearch.TreeCursor.reopen Ember.Copyable, Ember.Freezable,
   # @public
   isVolatile: no
 
-  # @example
-  # ```
-  #   @copy (@treewideProperties.concat ['parent']), node: "A"
-  # ```
-  # Important:
-  # This will copy the cursor along with the information about its current
-  # tree (validators, cursorPool, volatility, cached properties if specified).
+  # Copies a cursor keeping only node and properties from #treewideProperties
   # 
-  # @param {Array} carryOver Keys of properties to copy over
-  # @param {Object} properties Other properties
+  # @param {Object} properties
   # @public
-  copy: (carryOver = @treewideProperties, properties = {}) ->
-    carryOverProperties = @_memoizedPropertiesForKeys carryOver.concat ['node']
-    @constructor.create Ember.merge carryOverProperties, properties
+  copy: (properties = {}) ->
+    propagatedProperties = @getProperties @treewideProperties.concat ['node']
+    @constructor.create Ember.merge propagatedProperties, properties
 
-  # Create a cursor in an existing tree with node from the current cursor.
+  # Creates a cursor in an existing tree with node from the current cursor
   # 
   # @param {TreeCursor} tree Existing tree
   # @param {Object} properties
   # @see #copy, #cursorPool, tests for examples
   # @public
   copyIntoTree: (tree, properties = {}) ->
-    tree.copy @treewideProperties, Ember.merge properties, node: @node
+    tree.copy Ember.merge properties, node: @node
   
-  # By ommitting 'cursorPool' from the list of carried over properties, 
-  # this will essentialy create a brand new tree, keeping only validations 
-  # and volatility setting.
+  # Copies the cursor into a new tree, keeping only node, validators 
+  # and volatility setting
   # 
   # @param {TreeCursor} constructor
   # @param {Object} properties
@@ -127,11 +119,12 @@ TreeSearch.TreeCursor.reopen Ember.Copyable, Ember.Freezable,
   # @public
   copyIntoNewTree: (properties = {}, constructor = @constructor) ->
     constructor.create Ember.merge {
+      node: @node
       _validators: (@get '_validators').copy()
       isVolatile: @isVolatile
-      node: @node
     }, properties
 
+  # @see Ember.Object#concatenatedProperties
   concatenatedProperties: ['treewideProperties']
 
   # Immutable list of properties shared with cursors in the whole tree.
@@ -141,7 +134,7 @@ TreeSearch.TreeCursor.reopen Ember.Copyable, Ember.Freezable,
   # with treewideProperties from superclasses.
   # @see concatenatedProperties in Ember
   # @readonly
-  treewideProperties: ['cursorPool', 'root', 'isVolatile', '_validators', 'originalTree']
+  treewideProperties: ['cursorPool', 'isVolatile', '_validators', 'originalTree']
 
   # Pool of cursors in the tree (map of nodes to cursors) to assert
   # uniqueness of cursors.

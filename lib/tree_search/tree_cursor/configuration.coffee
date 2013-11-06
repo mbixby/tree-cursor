@@ -86,7 +86,7 @@ TreeSearch.TreeCursor.reopen
     if @node is _.head @get 'parent._childNodes'
       0 
     else
-      if @_isPropertyCachedOrDefined 'leftSibling'
+      if @isPropertyMemoized 'leftSibling'
         (@get 'leftSibling._indexInSiblingNodes') + 1
       else
         (@get 'parent._childNodes').indexOf @node

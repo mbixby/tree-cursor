@@ -135,23 +135,26 @@ TreeSearch.TreeCursor.reopen
         @get "rightSibling"
 
   _createParent: (properties) ->
-    @copy @treewideProperties, Em.merge properties,
+    @copy Em.merge properties,
       # Example of validReplacement: This cursor asked for its parent, but 
       # the parent is invalid and can be replaced. Get parent.parent instead.
       validReplacement: 'parent'
 
   _createFirstChild: (properties) ->
-    @copy @treewideProperties, Em.merge properties, 
+    properties = Em.merge (@getMemoizedProperties ['root']), properties
+    @copy Em.merge properties, 
       validReplacement: @_validReplacementForNode()
       parent: this
       leftSibling: null
 
   _createLeftSibling: (properties) ->
-    @copy (@treewideProperties.concat ['parent']), Em.merge properties, 
+    properties = Em.merge (@getMemoizedProperties ['root', 'parent']), properties
+    @copy Em.merge properties, 
       validReplacement: @_validReplacementForNode()
       rightSibling: this
 
   _createRightSibling: (properties) ->
-    @copy (@treewideProperties.concat ['parent']), Em.merge properties, 
+    properties = Em.merge (@getMemoizedProperties ['root', 'parent']), properties
+    @copy Em.merge properties, 
       validReplacement: @_validReplacementForNode()
       leftSibling: this

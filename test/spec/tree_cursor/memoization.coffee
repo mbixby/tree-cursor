@@ -26,22 +26,22 @@ describe "TreeCursor (memoization)", ->
     it "should re-run property getters for basic neighbors", ->
       cursor = cursors.get 'B'
       cursor.resetCursor()
-      expect(cursor._cachedOrDefinedProperty 'parent').to.not.be.defined
-      expect(cursor._cachedOrDefinedProperty 'rightSibling').to.not.be.defined
-      expect((cursors.get 'E')._cachedOrDefinedProperty 'parent').to.be.defined
+      expect(cursor.getMemoized 'parent').to.not.be.defined
+      expect(cursor.getMemoized 'rightSibling').to.not.be.defined
+      expect((cursors.get 'E').getMemoized 'parent').to.be.defined
 
   describe "#resetSubtree", ->
     it "should reset itself recursively all children and their children", ->
       cursor = cursors.get 'B'
       cursor.resetCursor()
-      expect(cursor._cachedOrDefinedProperty 'parent').to.not.be.defined
-      expect(cursor._cachedOrDefinedProperty 'rightSibling').to.not.be.defined
-      expect((cursors.get 'E')._cachedOrDefinedProperty 'parent').to.not.be.defined
+      expect(cursor.getMemoized 'parent').to.not.be.defined
+      expect(cursor.getMemoized 'rightSibling').to.not.be.defined
+      expect((cursors.get 'E').getMemoized 'parent').to.not.be.defined
 
   describe "#resetChildren", ->
     it "shoud reset children and their subtrees", ->
       cursor = cursors.get 'B'
       cursor.resetCursor()
-      expect(cursor._cachedOrDefinedProperty 'parent').to.be.defined
-      expect(cursor._cachedOrDefinedProperty 'rightSibling').to.be.defined
-      expect((cursors.get 'E')._cachedOrDefinedProperty 'parent').to.not.be.defined
+      expect(cursor.getMemoized 'parent').to.be.defined
+      expect(cursor.getMemoized 'rightSibling').to.be.defined
+      expect((cursors.get 'E').getMemoized 'parent').to.not.be.defined

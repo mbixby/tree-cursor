@@ -44,15 +44,15 @@ describe "TreeCursor (neighbors and successors)", ->
 
   describe "non-volatile cursor", ->
     it "should memoize preceding parent", ->
-      cache = (cursors.get "B")._cachedOrDefinedProperty "parent"
+      cache = (cursors.get "B").getMemoized "parent"
       expect(cache.get "name").to.equal "A"
 
     it "should memoize 'null' if preceding sibling doesn't exist", ->
-      cache = (cursors.get "B")._cachedOrDefinedProperty "leftSibling"
+      cache = (cursors.get "B").getMemoized "leftSibling"
       expect(cache).to.equal null
 
     it "should memoize preceding sibling", ->
-      cache = (cursors.get "C")._cachedOrDefinedProperty "leftSibling"
+      cache = (cursors.get "C").getMemoized "leftSibling"
       expect(cache).to.equal cursors.get 'B'
 
   examples.each (method, examples) ->

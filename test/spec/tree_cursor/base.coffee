@@ -24,21 +24,21 @@ describe "TreeCursor (base)", ->
       strayCursor = Cursor.create
         node: cursors.get "C.node"
         cursorPool: cursors.get "C.cursorPool"
-      expect(strayCursor._cachedOrDefinedProperty 'parent').to.not.be.defined
+      expect(strayCursor.getMemoized 'parent').to.not.be.defined
       expect(strayCursor.get 'parent').to.equal cursors.get "A"
 
     it "should not retrieve existing cursor from foreign cursor pool", ->
       strayCursor = Cursor.create
         node: cursors.get "C.node"
-      expect(strayCursor._cachedOrDefinedProperty 'parent').to.not.be.defined
+      expect(strayCursor.getMemoized 'parent').to.not.be.defined
       expect(strayCursor.get 'parent').to.not.equal cursors.get "A"
 
-  describe "#copy", ->
-    it "should duplicate the tree by not carrying over memoized values", ->
+  describe "#copyIntoNewTree", ->
+    it "should duplicate the tree", ->
       memoizeSomeCursors = do ->
         cursors.get "B"
         cursors.get "C"
-      copy = (cursors.get "A").copy []
+      copy = (cursors.get "A").copyIntoNewTree()
 
       # Now the cursors should not be the same objects
       originals = "A B C".w().map (name) -> cursors.get 'name'

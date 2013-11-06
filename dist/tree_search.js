@@ -149,22 +149,19 @@ TreeSearch.TreeCursor = TreeSearch.ObjectWithSharedPool.extend().reopenClass({
 TreeSearch.TreeCursor.reopen(Ember.Copyable, Ember.Freezable, {
   node: Ember.required(),
   isVolatile: false,
-  copy: function(carryOver, properties) {
-    var carryOverProperties;
-    if (carryOver == null) {
-      carryOver = this.treewideProperties;
-    }
+  copy: function(properties) {
+    var propagatedProperties;
     if (properties == null) {
       properties = {};
     }
-    carryOverProperties = this._memoizedPropertiesForKeys(carryOver.concat(['node']));
-    return this.constructor.create(Ember.merge(carryOverProperties, properties));
+    propagatedProperties = this.getProperties(this.treewideProperties.concat(['node']));
+    return this.constructor.create(Ember.merge(propagatedProperties, properties));
   },
   copyIntoTree: function(tree, properties) {
     if (properties == null) {
       properties = {};
     }
-    return tree.copy(this.treewideProperties, Ember.merge(properties, {
+    return tree.copy(Ember.merge(properties, {
       node: this.node
     }));
   },
@@ -176,13 +173,13 @@ TreeSearch.TreeCursor.reopen(Ember.Copyable, Ember.Freezable, {
       constructor = this.constructor;
     }
     return constructor.create(Ember.merge({
+      node: this.node,
       _validators: (this.get('_validators')).copy(),
-      isVolatile: this.isVolatile,
-      node: this.node
+      isVolatile: this.isVolatile
     }, properties));
   },
   concatenatedProperties: ['treewideProperties'],
-  treewideProperties: ['cursorPool', 'root', 'isVolatile', '_validators', 'originalTree'],
+  treewideProperties: ['cursorPool', 'isVolatile', '_validators', 'originalTree'],
   cursorPool: Ember.computed.alias('sharedPool'),
   init: function() {
     var _ref;
@@ -244,7 +241,7 @@ TreeSearch.TreeCursor.reopen({
     if (this.node === _.head(this.get('parent._childNodes'))) {
       return 0;
     } else {
-      if (this._isPropertyCachedOrDefined('leftSibling')) {
+      if (this.isPropertyMemoized('leftSibling')) {
         return (this.get('leftSibling._indexInSiblingNodes')) + 1;
       } else {
         return (this.get('parent._childNodes')).indexOf(this.node);
@@ -356,20 +353,29 @@ TreeSearch.TreeCursor.reopen({
       return _results;
     });
   },
-  _memoizedPropertiesForKeys: function(propertyList) {
-    var keysAndValues,
-      _this = this;
+  getMemoizedProperties: function(propertyList) {
+    var _this = this;
     if (propertyList == null) {
       propertyList = [];
     }
-    keysAndValues = propertyList.map(function(key) {
+    return _.zipObject(_.compact(propertyList.map(function(key) {
       var value;
-      value = _this[key] !== void 0 ? _this[key] : _this.cacheFor(key);
+      value = _this.getMemoized(key);
       if (value !== void 0) {
         return [key, value];
       }
-    });
-    return _.zipObject(_.compact(keysAndValues));
+    })));
+  },
+  getMemoized: function(propertyName) {
+    var value;
+    value = this[propertyName];
+    if (value === void 0) {
+      value = this.cacheFor(propertyName);
+    }
+    return value;
+  },
+  isPropertyMemoized: function(propertyName) {
+    return void 0 !== this.getMemoized(propertyName);
   },
   _baseNeighborProperties: ['parent', 'firstChild', 'rightSibling', 'leftSibling', '_childNodes', '_indexInSiblingNodes'],
   _baseChildrenProperties: ['firstChild', '_childNodes', '_indexInSiblingNodes'],
@@ -386,17 +392,6 @@ TreeSearch.TreeCursor.reopen({
       meta = Ember.meta(this, true);
       return delete meta.cache[name];
     }
-  },
-  _cachedOrDefinedProperty: function(name) {
-    var value;
-    value = this[name];
-    if (value === void 0) {
-      value = this.cacheFor(name);
-    }
-    return value;
-  },
-  _isPropertyCachedOrDefined: function(name) {
-    return void 0 !== this._cachedOrDefinedProperty(name);
   },
   didChangeTreeVolatility: (function() {
     var descriptor, isVolatile, key, wasVolatile, _i, _len, _ref, _results;
@@ -502,25 +497,28 @@ TreeSearch.TreeCursor.reopen({
     };
   },
   _createParent: function(properties) {
-    return this.copy(this.treewideProperties, Em.merge(properties, {
+    return this.copy(Em.merge(properties, {
       validReplacement: 'parent'
     }));
   },
   _createFirstChild: function(properties) {
-    return this.copy(this.treewideProperties, Em.merge(properties, {
+    properties = Em.merge(this.getMemoizedProperties(['root']), properties);
+    return this.copy(Em.merge(properties, {
       validReplacement: this._validReplacementForNode(),
       parent: this,
       leftSibling: null
     }));
   },
   _createLeftSibling: function(properties) {
-    return this.copy(this.treewideProperties.concat(['parent']), Em.merge(properties, {
+    properties = Em.merge(this.getMemoizedProperties(['root', 'parent']), properties);
+    return this.copy(Em.merge(properties, {
       validReplacement: this._validReplacementForNode(),
       rightSibling: this
     }));
   },
   _createRightSibling: function(properties) {
-    return this.copy(this.treewideProperties.concat(['parent']), Em.merge(properties, {
+    properties = Em.merge(this.getMemoizedProperties(['root', 'parent']), properties);
+    return this.copy(Em.merge(properties, {
       validReplacement: this._validReplacementForNode(),
       leftSibling: this
     }));
@@ -974,12 +972,12 @@ TreeSearch.Trimming.reopen({
     trimming = this;
     return (this.get('leftBoundary')).constructor.extend({
       _trimming: trimming,
-      treewideProperties: ['_trimming', '_leftBoundary', '_rightBoundary'],
+      propagatedProperties: ['_trimming', '_leftBoundary', '_rightBoundary'],
       _leftBoundary: (function() {
-        return (this.get('_trimming.leftBoundary')).copyIntoTree(this);
+        return (this.get('_trimming.leftBoundary')).copyIntoTree(this, this.getMemoizedProperties(this.propagatedProperties));
       }).property(),
       _rightBoundary: (function() {
-        return (this.get('_trimming.rightBoundary')).copyIntoTree(this);
+        return (this.get('_trimming.rightBoundary')).copyIntoTree(this, this.getMemoizedProperties(this.propagatedProperties));
       }).property(),
       _isInsideOfLeftBoundary: (function() {
         return this._isInsideOfBoundary('left');

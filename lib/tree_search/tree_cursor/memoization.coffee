@@ -44,14 +44,22 @@ TreeSearch.TreeCursor.reopen
   # cursor. This can be passed to @create to preserve memoized properties
   # on the next cursor
   # @returns Object
-  _memoizedPropertiesForKeys: (propertyList = []) ->
-    keysAndValues = propertyList.map (key) => 
-      value = if @[key] isnt undefined
-        @[key]
-      else
-        @cacheFor key
+  getMemoizedProperties: (propertyList = []) ->
+    _.zipObject _.compact propertyList.map (key) => 
+      value = @getMemoized key
       [key, value] if value isnt undefined
-    _.zipObject _.compact keysAndValues
+    
+  # Allows to peek at property cache. Unlike @cacheFor, this also looks
+  # at keys defined on this object.
+  # TODO Comment about undefined vs null
+  getMemoized: (propertyName) ->
+    value = @[propertyName]
+    if value is undefined
+      value = @cacheFor propertyName
+    value
+
+  isPropertyMemoized: (propertyName) ->
+    undefined isnt @getMemoized propertyName
 
   # Neighbors from which other properties are inferred
   # TODO Remove
@@ -69,17 +77,6 @@ TreeSearch.TreeCursor.reopen
     if descriptor._cacheable
       meta = Ember.meta this, true
       delete meta.cache[name]
-
-  # Allows to peek at property cache. Unlike @cacheFor, this also looks
-  # at keys defined on this object
-  _cachedOrDefinedProperty: (name) ->
-    value = @[name]
-    if value is undefined
-      value = @cacheFor name
-    value
-
-  _isPropertyCachedOrDefined: (name) ->
-    undefined isnt @_cachedOrDefinedProperty name
 
   didChangeTreeVolatility: (->
     isVolatile = @get 'isVolatile'

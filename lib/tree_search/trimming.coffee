@@ -86,14 +86,16 @@ TreeSearch.Trimming.reopen
     (@get 'leftBoundary').constructor.extend
       _trimming: trimming
 
-      treewideProperties: ['_trimming', '_leftBoundary', '_rightBoundary']
+      propagatedProperties: ['_trimming', '_leftBoundary', '_rightBoundary']
 
       _leftBoundary: (->
-        (@get '_trimming.leftBoundary').copyIntoTree this
+        (@get '_trimming.leftBoundary').copyIntoTree this, 
+          @getMemoizedProperties @propagatedProperties
       ).property()
 
       _rightBoundary: (->
-        (@get '_trimming.rightBoundary').copyIntoTree this
+        (@get '_trimming.rightBoundary').copyIntoTree this, 
+          @getMemoizedProperties @propagatedProperties
       ).property()
 
       _isInsideOfLeftBoundary: (->
