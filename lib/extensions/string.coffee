@@ -1,12 +1,12 @@
 if Ember.EXTEND_PROTOTYPES or Ember.EXTEND_PROTOTYPES.String
 
   # TODO Docs
-  String.prototype.stripPrefix = (prefix) ->
+  String::stripPrefix = (prefix) ->
     regex = new RegExp "^" + prefix
     @replace regex, ''
 
   # TODO Docs
-  String.prototype.contains = (searchedString) ->
+  String::contains = (searchedString) ->
     regex = new RegExp searchedString
     @match regex
 
@@ -25,5 +25,5 @@ if Ember.EXTEND_PROTOTYPES or Ember.EXTEND_PROTOTYPES.String
     no: "yes"
 
   # TODO Docs
-  String.prototype.opposite = ->
+  String::opposite = ->
     String.Inflector.opposites[this]

@@ -28,6 +28,10 @@ TreeSearch.ObjectWithSharedPool = Ember.Object.extend().reopenClass
   keyForObject: (properties) ->
     Ember.get properties, 'id'
 
+  # Override this method if:
+  # * sharedPool is not present in properties for #create or
+  # * sharedPool is not present on instances or
+  # * sharedPool has an alias
   # @param {object | Ember.Object} properties
   sharedPoolForObject: (properties) ->
     Ember.get properties, 'sharedPool'

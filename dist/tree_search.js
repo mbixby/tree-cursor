@@ -78,6 +78,68 @@ if (Ember.EXTEND_PROTOTYPES || Ember.EXTEND_PROTOTYPES.String) {
 }
 
 
+var TogglableComputedProperty,
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+TogglableComputedProperty = (function(_super) {
+  __extends(TogglableComputedProperty, _super);
+
+  function TogglableComputedProperty() {
+    Ember.ComputedProperty.apply(this, arguments);
+  }
+
+  TogglableComputedProperty.prototype.get = function(obj, keyName) {
+    if (obj.isVolatile) {
+      return this.func.call(obj, keyName);
+    } else {
+      return Ember.ComputedProperty.prototype.get.apply(this, arguments);
+    }
+  };
+
+  TogglableComputedProperty.prototype.set = function(obj, keyName, value) {
+    if (obj.isVolatile || value === void 0) {
+      return value;
+    } else {
+      return Ember.ComputedProperty.prototype.set.apply(this, arguments);
+    }
+  };
+
+  return TogglableComputedProperty;
+
+})(Ember.ComputedProperty);
+
+TogglableComputedProperty.computed = function(func) {
+  var args, cp;
+  if (arguments.length > 1) {
+    args = [].slice.call(arguments, 0, -1);
+    func = [].slice.call(arguments, -1)[0];
+  }
+  cp = new TogglableComputedProperty(func);
+  if (args) {
+    cp.property.apply(cp, args);
+  }
+  return cp;
+};
+
+TogglableComputedProperty.computed.alias = function(dependentKey) {
+  return TogglableComputedProperty.computed(dependentKey, function(key, value) {
+    if (arguments.length > 1) {
+      set(this, dependentKey, value);
+      return value;
+    } else {
+      return Ember.get(this, dependentKey);
+    }
+  });
+};
+
+Function.prototype.togglableProperty = function() {
+  var ret;
+  ret = TogglableComputedProperty.computed(this);
+  return ret.property.apply(ret, arguments);
+};
+
+
 var __slice = [].slice;
 
 
@@ -194,15 +256,19 @@ TreeSearch.TreeCursor.reopen(Ember.Copyable, Ember.Freezable, {
 });
 
 
+var alias;
+
+alias = TogglableComputedProperty.computed.alias;
+
 TreeSearch.TreeCursor.reopen({
-  firstChildFromRight: Ember.computed.alias('lastChild'),
-  firstChildFromLeft: Ember.computed.alias('firstChild'),
-  rightSuccessor: Ember.computed.alias('successor'),
-  leftSuccessor: Ember.computed.alias('predecessor'),
-  rightSuccessorAtSameDepth: Ember.computed.alias('successorAtSameDepth'),
-  leftSuccessorAtSameDepth: Ember.computed.alias('predecessorAtSameDepth'),
-  rightLeafSuccessor: Ember.computed.alias('leafSuccessor'),
-  leftLeafSuccessor: Ember.computed.alias('leafPredecessor')
+  firstChildFromRight: alias('lastChild'),
+  firstChildFromLeft: alias('firstChild'),
+  rightSuccessor: alias('successor'),
+  leftSuccessor: alias('predecessor'),
+  rightSuccessorAtSameDepth: alias('successorAtSameDepth'),
+  leftSuccessorAtSameDepth: alias('predecessorAtSameDepth'),
+  rightLeafSuccessor: alias('leafSuccessor'),
+  leftLeafSuccessor: alias('leafPredecessor')
 });
 
 
@@ -236,7 +302,7 @@ TreeSearch.TreeCursor.reopen({
   },
   _childNodes: (function() {
     return this.findChildNodes(this.node);
-  }).property(),
+  }).togglableProperty(),
   _indexInSiblingNodes: (function() {
     if (this.node === _.head(this.get('parent._childNodes'))) {
       return 0;
@@ -247,24 +313,24 @@ TreeSearch.TreeCursor.reopen({
         return (this.get('parent._childNodes')).indexOf(this.node);
       }
     }
-  }).property()
+  }).togglableProperty()
 });
 
 
 TreeSearch.TreeCursor.reopen({
   branch: (function() {
     return _.flatten(_.compact([this, this.get('parent.branch')]));
-  }).property('parent.branch'),
+  }).togglableProperty('parent.branch'),
   depth: (function() {
     return (this.get('branch.length')) - 1;
-  }).property('branch'),
+  }).togglableProperty('branch'),
   height: (function() {
     if (this.get('isLeaf')) {
       return 0;
     } else {
       return 1 + _.max((this.get('children')).mapProperty('height'));
     }
-  }).property('isLeaf', 'children.@each.height'),
+  }).togglableProperty('isLeaf', 'children.@each.height'),
   findClosestCommonAncestorWithCursor: function(cursor) {
     var branches;
     branches = [this, cursor].map(function(c) {
@@ -379,12 +445,6 @@ TreeSearch.TreeCursor.reopen({
   },
   _baseNeighborProperties: ['parent', 'firstChild', 'rightSibling', 'leftSibling', '_childNodes', '_indexInSiblingNodes'],
   _baseChildrenProperties: ['firstChild', '_childNodes', '_indexInSiblingNodes'],
-  _getDescriptorOfProperty: function(name) {
-    var descriptors, prototype;
-    prototype = this.constructor.proto();
-    descriptors = (Ember.meta(prototype)).descs;
-    return descriptors[name];
-  },
   _clearCacheOfProperty: function(name) {
     var descriptor, meta;
     descriptor = this._getDescriptorOfProperty(name);
@@ -393,33 +453,12 @@ TreeSearch.TreeCursor.reopen({
       return delete meta.cache[name];
     }
   },
-  didChangeTreeVolatility: (function() {
-    var descriptor, isVolatile, key, wasVolatile, _i, _len, _ref, _results;
-    isVolatile = this.get('isVolatile');
-    wasVolatile = this._previousValueOfIsVolatile;
-    this._previousValueOfIsVolatile = isVolatile;
-    _ref = this.get('_namesOfCursorSpecificProperties');
-    _results = [];
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      key = _ref[_i];
-      descriptor = this._getDescriptorOfProperty(key);
-      if ((!wasVolatile) && !descriptor._cacheable) {
-        Ember.setMeta(descriptor, 'shouldStayVolatile', true);
-      }
-      if (!Ember.getMeta(descriptor, 'shouldStayVolatile')) {
-        descriptor.cacheable(!isVolatile);
-        if (!isVolatile) {
-          _results.push(this.propertyDidChange(name));
-        } else {
-          _results.push(void 0);
-        }
-      } else {
-        _results.push(void 0);
-      }
-    }
-    return _results;
-  }).observes('isVolatile'),
-  _previousValueOfIsVolatile: false
+  _getDescriptorOfProperty: function(name) {
+    var descs, prototype;
+    prototype = TreeSearch.TreeCursor.proto();
+    descs = (Ember.meta(prototype)).descs;
+    return descs[name];
+  }
 });
 
 
@@ -428,60 +467,60 @@ TreeSearch.TreeCursor.reopen({
     return this._createFirstChild({
       node: this.findFirstChildNode(this.node)
     });
-  }).property(),
+  }).togglableProperty(),
   rightSibling: (function() {
     return this._createRightSibling({
       node: this.findRightSiblingNode(this.node)
     });
-  }).property(),
+  }).togglableProperty(),
   leftSibling: (function() {
     return this._createLeftSibling({
       node: typeof this.findLeftSiblingNode === "function" ? this.findLeftSiblingNode(this.node) : void 0
     });
-  }).property(),
+  }).togglableProperty(),
   parent: (function() {
     return this._createParent({
       node: typeof this.findParentNode === "function" ? this.findParentNode(this.node) : void 0
     });
-  }).property(),
+  }).togglableProperty(),
   rightSiblings: (function() {
     var sibling;
     sibling = this.get('rightSibling');
     return _.flatten(_.compact([sibling, sibling != null ? sibling.get('rightSiblings') : void 0]));
-  }).property('rightSibling', 'rightSibling.rightSiblings'),
+  }).togglableProperty('rightSibling', 'rightSibling.rightSiblings'),
   leftSiblings: (function() {
     var sibling;
     sibling = this.get('leftSibling');
     return _.flatten(_.compact([sibling != null ? sibling.get('leftSiblings') : void 0, sibling]));
-  }).property('leftSibling', 'leftSibling.leftSiblings'),
+  }).togglableProperty('leftSibling', 'leftSibling.leftSiblings'),
   rightmostSibling: (function() {
     var _ref;
     return (_ref = this.get('rightSiblings.lastObject')) != null ? _ref : null;
-  }).property('rightSiblings.lastObject'),
+  }).togglableProperty('rightSiblings.lastObject'),
   leftmostSibling: (function() {
     var _ref;
     return (_ref = this.get('leftSiblings.firstObject')) != null ? _ref : null;
-  }).property('leftSiblings.firstObject'),
+  }).togglableProperty('leftSiblings.firstObject'),
   lastChild: (function() {
     var firstChild, _ref;
     firstChild = this.get('firstChild');
     return (_ref = firstChild != null ? firstChild.get('rightmostSibling') : void 0) != null ? _ref : firstChild;
-  }).property('firstChild', 'firstChild.rightmostSibling'),
+  }).togglableProperty('firstChild', 'firstChild.rightmostSibling'),
   children: (function() {
     var child;
     child = this.get('firstChild');
     return _.compact(_.flatten([child, child != null ? child.get('rightSiblings') : void 0]));
-  }).property('firstChild', 'firstChild.rightSiblings'),
+  }).togglableProperty('firstChild', 'firstChild.rightSiblings'),
   root: (function() {
     var _ref;
     return (_ref = this.get('parent.root')) != null ? _ref : this;
-  }).property('parent.root'),
+  }).togglableProperty('parent.root'),
   isLeaf: (function() {
     return !this.get('firstChild');
-  }).property('firstChild'),
+  }).togglableProperty('firstChild'),
   isRoot: (function() {
     return !this.get('parent');
-  }).property('parent'),
+  }).togglableProperty('parent'),
   _validReplacementForNode: function() {
     return function() {
       var child, lastChild, rightSibling, _ref;
@@ -594,19 +633,19 @@ TreeSearch.TreeCursor.reopen({
   upwardSuccessor: (function() {
     var _ref;
     return (_ref = this.get('parent.rightSibling')) != null ? _ref : this.get('parent.upwardSuccessor');
-  }).property('parent.rightSibling', 'parent.upwardSuccessor'),
+  }).togglableProperty('parent.rightSibling', 'parent.upwardSuccessor'),
   upwardPredecessor: (function() {
     var _ref;
     return (_ref = this.get('parent.leftSibling')) != null ? _ref : this.get('parent.upwardPredecessor');
-  }).property('parent.leftSibling', 'parent.upwardPredecessor'),
+  }).togglableProperty('parent.leftSibling', 'parent.upwardPredecessor'),
   successor: (function() {
     var _ref, _ref1;
     return (_ref = (_ref1 = this.get('firstChild')) != null ? _ref1 : this.get('rightSibling')) != null ? _ref : this.get('upwardSuccessor');
-  }).property('firstChild', 'rightSibling', 'upwardSuccessor'),
+  }).togglableProperty('firstChild', 'rightSibling', 'upwardSuccessor'),
   predecessor: (function() {
     var _ref, _ref1;
     return (_ref = (_ref1 = this.get('lastChild')) != null ? _ref1 : this.get('leftSibling')) != null ? _ref : this.get('upwardPredecessor');
-  }).property('lastChild', 'leftSibling', 'upwardPredecessor'),
+  }).togglableProperty('lastChild', 'leftSibling', 'upwardPredecessor'),
   findCursorAndItsRelativeDepth: function(propertyName, depth) {
     var cursor;
     if (depth == null) {
@@ -641,10 +680,10 @@ TreeSearch.TreeCursor.reopen({
   },
   successorAtSameDepth: (function() {
     return this.findSuccessorAtDepth(this.get('depth'));
-  }).property().volatile(),
+  }).togglableProperty().volatile(),
   predecessorAtSameDepth: (function() {
     return this.findPredecessorAtDepth(this.get('depth'));
-  }).property().volatile(),
+  }).togglableProperty().volatile(),
   leafSuccessor: (function() {
     var succ;
     if (succ = this.get("successor")) {
@@ -656,7 +695,7 @@ TreeSearch.TreeCursor.reopen({
     } else {
       return null;
     }
-  }).property('successor', 'successor.isLeaf', 'successor.leafSuccessor'),
+  }).togglableProperty('successor', 'successor.isLeaf', 'successor.leafSuccessor'),
   leafPredecessor: (function() {
     var pred;
     if (pred = this.get("predecessor")) {
@@ -668,7 +707,7 @@ TreeSearch.TreeCursor.reopen({
     } else {
       return null;
     }
-  }).property('predecessor', 'predecessor.isLeaf', 'predecessor.leafSuccessor')
+  }).togglableProperty('predecessor', 'predecessor.isLeaf', 'predecessor.leafSuccessor')
 });
 
 
@@ -706,7 +745,7 @@ TreeSearch.TreeCursor.reopen({
     } else {
       return this.get('_extractedValidReplacement');
     }
-  }).property(),
+  }).togglableProperty(),
   _extractedValidReplacement: (function() {
     var accessor;
     accessor = this.get('validReplacement');
@@ -715,7 +754,7 @@ TreeSearch.TreeCursor.reopen({
     } else {
       return accessor != null ? accessor.apply(this, []) : void 0;
     }
-  }).property('validReplacement'),
+  }).togglableProperty('validReplacement'),
   validations: (function() {
     return _.zipObject((this.get('_validators')).map(function(validator) {
       var identifier, result, _ref;
@@ -723,10 +762,10 @@ TreeSearch.TreeCursor.reopen({
       result = null;
       return [identifier, result];
     }));
-  }).property('_validators'),
+  }).togglableProperty('_validators'),
   _validators: (function() {
     return Ember.Set.create();
-  }).property(),
+  }).togglableProperty(),
   _firstFailedValidator: (function() {
     var validator, _i, _len, _ref;
     _ref = this.get('_validators');
@@ -736,10 +775,10 @@ TreeSearch.TreeCursor.reopen({
         return validator;
       }
     }
-  }).property(),
+  }).togglableProperty(),
   twinFromOriginalTree: (function() {
     return this.copyIntoTree(this.originalTree);
-  }).property(),
+  }).togglableProperty(),
   originalTree: void 0
 });
 

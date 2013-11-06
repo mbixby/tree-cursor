@@ -1,19 +1,8 @@
 # TreeSearch.TreeCursor
 # Memoization
 # 
-# Property (attribute of type Ember.ComputedProperty) marked 
-# as 'cursorSpecific' implies that the property contains information about
-# adjacent cursors.
-# Such property is not memoized when the tree is volatile 
-# (i.e. #isVolatile is set to true). Its cache is also automatically
-# cleared when the cursor is reset or copied.
-# 
-# Example of property definition:
-# ```
-# key: (->
-#   # accessor logic
-# ).property('dependency').meta(cursorSpecific: yes)
-# ```
+# Methods for invalidating and inspecting property cache
+# @see TogglableComputedProperty
 
 TreeSearch.TreeCursor.reopen
   
@@ -67,33 +56,13 @@ TreeSearch.TreeCursor.reopen
   
   _baseChildrenProperties: ['firstChild', '_childNodes', '_indexInSiblingNodes']
 
-  _getDescriptorOfProperty: (name) ->
-    prototype = @constructor.proto()
-    descriptors = (Ember.meta prototype).descs
-    descriptors[name]
-
   _clearCacheOfProperty: (name) ->
     descriptor = @_getDescriptorOfProperty name
     if descriptor._cacheable
       meta = Ember.meta this, true
       delete meta.cache[name]
 
-  didChangeTreeVolatility: (->
-    isVolatile = @get 'isVolatile'
-    wasVolatile = @_previousValueOfIsVolatile
-    @_previousValueOfIsVolatile = isVolatile
-
-    for key in @get '_namesOfCursorSpecificProperties'
-      descriptor = @_getDescriptorOfProperty key
-
-      # Volatile properties should always stay volatile
-      if (not wasVolatile) and not descriptor._cacheable
-        Ember.setMeta descriptor, 'shouldStayVolatile', yes 
-
-      # Toggle volatility and clear caches
-      unless Ember.getMeta descriptor, 'shouldStayVolatile'
-        descriptor.cacheable not isVolatile
-        @propertyDidChange name unless isVolatile
-  ).observes 'isVolatile'
-
-  _previousValueOfIsVolatile: no
+  _getDescriptorOfProperty: (name) ->
+    prototype = TreeSearch.TreeCursor.proto()
+    descs = (Ember.meta prototype).descs
+    descs[name]

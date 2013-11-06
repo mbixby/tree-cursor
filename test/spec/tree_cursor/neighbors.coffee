@@ -42,7 +42,7 @@ describe "TreeCursor (neighbors and successors)", ->
   beforeEach ->
     cursors = getListOfCursorsIn Helpers.AsciiTreeParser.parse tree
 
-  describe "non-volatile cursor", ->
+  describe "when cursor is not volatile", ->
     it "should memoize preceding parent", ->
       cache = (cursors.get "B").getMemoized "parent"
       expect(cache.get "name").to.equal "A"
@@ -54,6 +54,24 @@ describe "TreeCursor (neighbors and successors)", ->
     it "should memoize preceding sibling", ->
       cache = (cursors.get "C").getMemoized "leftSibling"
       expect(cache).to.equal cursors.get 'B'
+
+  describe "when cursor is volatile", ->
+    beforeEach ->
+      node = Helpers.AsciiTreeParser.parse tree
+      node.set 'cursor.isVolatile', yes
+      cursors = getListOfCursorsIn node
+
+    it "should not memoize preceding parent", ->
+      cache = (cursors.get "B").getMemoized "parent"
+      expect(cache).to.equal undefined
+
+    it "should propagate tree-wide properties", ->
+      pool = cursors.get "B.cursorPool"
+      expect(pool).to.equal cursors.get "A.cursorPool"
+
+    it "should not memoize preceding sibling", ->
+      cache = (cursors.get "C").getMemoized "leftSibling"
+      expect(cache).to.equal undefined
 
   examples.each (method, examples) ->
     describe "##{method}", ->

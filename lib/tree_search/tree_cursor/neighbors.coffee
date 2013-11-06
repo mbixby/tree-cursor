@@ -30,14 +30,14 @@ TreeSearch.TreeCursor.reopen
   # TODO Implement with #children when circ. dependencies are implemented
   firstChild: (->
     @_createFirstChild node: @findFirstChildNode @node
-  ).property() 
+  ).togglableProperty() 
 
   # @readonly
   # @type TreeCursor | null
   # TODO Implement with #children when circ. dependencies are implemented
   rightSibling: (->
     @_createRightSibling node: @findRightSiblingNode @node
-  ).property() 
+  ).togglableProperty() 
 
   # @readonly
   # @type TreeCursor | null
@@ -46,7 +46,7 @@ TreeSearch.TreeCursor.reopen
   # its left sibling
   leftSibling: (->
     @_createLeftSibling node: @findLeftSiblingNode? @node
-  ).property() 
+  ).togglableProperty() 
 
   # @readonly
   # @type TreeCursor | null
@@ -54,63 +54,63 @@ TreeSearch.TreeCursor.reopen
   # TODO make dependent on leftSibling.parent (problems with findChildNodes)
   parent: (->
     @_createParent node: @findParentNode? @node
-  ).property()
+  ).togglableProperty()
 
   # @readonly
   # @type Array ([TreeCursor])
   rightSiblings: (->
     sibling = @get 'rightSibling'
     _.flatten _.compact [sibling, (sibling?.get 'rightSiblings')]
-  ).property('rightSibling', 'rightSibling.rightSiblings')
+  ).togglableProperty('rightSibling', 'rightSibling.rightSiblings')
 
   # @readonly
   # @type Array ([TreeCursor])
   leftSiblings: (->
     sibling = @get 'leftSibling'
     _.flatten _.compact [(sibling?.get 'leftSiblings'), sibling]
-  ).property('leftSibling', 'leftSibling.leftSiblings')
+  ).togglableProperty('leftSibling', 'leftSibling.leftSiblings')
 
   # @readonly
   # @type TreeCursor | null
   rightmostSibling: (->
     (@get 'rightSiblings.lastObject') ? null
-  ).property('rightSiblings.lastObject')
+  ).togglableProperty('rightSiblings.lastObject')
 
   # @readonly
   # @type TreeCursor | null
   leftmostSibling: (->
     (@get 'leftSiblings.firstObject') ? null
-  ).property('leftSiblings.firstObject')
+  ).togglableProperty('leftSiblings.firstObject')
 
   # @readonly
   # @type TreeCursor | null
   lastChild: (->
     firstChild = @get 'firstChild'
     (firstChild?.get 'rightmostSibling') ? firstChild
-  ).property('firstChild', 'firstChild.rightmostSibling')
+  ).togglableProperty('firstChild', 'firstChild.rightmostSibling')
 
   # @readonly
   # @type Array (TreeCursor)
   children: (->
     child = @get 'firstChild'
     _.compact _.flatten [child, child?.get 'rightSiblings']
-  ).property('firstChild', 'firstChild.rightSiblings')
+  ).togglableProperty('firstChild', 'firstChild.rightSiblings')
 
   # @readonly
   # @type TreeCursor | null
   root: (->
     (@get 'parent.root') ? this
-  ).property('parent.root')
+  ).togglableProperty('parent.root')
 
   # @readonly
   isLeaf: (->
     not @get 'firstChild'
-  ).property('firstChild')
+  ).togglableProperty('firstChild')
 
   # @readonly
   isRoot: (->
     not @get 'parent'
-  ).property('parent')
+  ).togglableProperty('parent')
 
 
   # Private

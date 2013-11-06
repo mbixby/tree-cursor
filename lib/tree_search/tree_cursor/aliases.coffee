@@ -1,3 +1,5 @@
+alias = TogglableComputedProperty.computed.alias
+
 # TreeSearch.TreeCursor
 # Aliases
 # 
@@ -11,25 +13,25 @@
 TreeSearch.TreeCursor.reopen
 
   # @alias lastChild
-  firstChildFromRight: Ember.computed.alias 'lastChild'
+  firstChildFromRight: alias 'lastChild'
 
   # @alias firstChild
-  firstChildFromLeft: Ember.computed.alias 'firstChild'
+  firstChildFromLeft: alias 'firstChild'
 
   # @alias successor
-  rightSuccessor: Ember.computed.alias 'successor'
+  rightSuccessor: alias 'successor'
 
   # @alias predecessor
-  leftSuccessor: Ember.computed.alias 'predecessor'
+  leftSuccessor: alias 'predecessor'
 
   # @alias successorAtSameDepth
-  rightSuccessorAtSameDepth: Ember.computed.alias 'successorAtSameDepth'
+  rightSuccessorAtSameDepth: alias 'successorAtSameDepth'
 
   # @alias predecessorAtSameDepth
-  leftSuccessorAtSameDepth: Ember.computed.alias 'predecessorAtSameDepth'
+  leftSuccessorAtSameDepth: alias 'predecessorAtSameDepth'
 
   # @alias leafSuccessor
-  rightLeafSuccessor: Ember.computed.alias 'leafSuccessor'
+  rightLeafSuccessor: alias 'leafSuccessor'
 
   # @alias leafPredecessor
-  leftLeafSuccessor: Ember.computed.alias 'leafPredecessor'
+  leftLeafSuccessor: alias 'leafPredecessor'

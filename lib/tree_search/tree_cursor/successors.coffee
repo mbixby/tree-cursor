@@ -17,14 +17,14 @@ TreeSearch.TreeCursor.reopen
   upwardSuccessor: (->
     (@get 'parent.rightSibling') ?
     (@get 'parent.upwardSuccessor')
-  ).property('parent.rightSibling', 'parent.upwardSuccessor')
+  ).togglableProperty('parent.rightSibling', 'parent.upwardSuccessor')
 
   # @type TreeCursor | null    
   # @readonly
   upwardPredecessor: (->
     (@get 'parent.leftSibling') ?
     (@get 'parent.upwardPredecessor')
-  ).property('parent.leftSibling', 'parent.upwardPredecessor')
+  ).togglableProperty('parent.leftSibling', 'parent.upwardPredecessor')
 
   # Note that retrieving successors recursively starting at root
   # would traverse the whole tree.
@@ -35,7 +35,7 @@ TreeSearch.TreeCursor.reopen
     (@get 'firstChild') ?
     (@get 'rightSibling') ?
     (@get 'upwardSuccessor')
-  ).property('firstChild', 'rightSibling', 'upwardSuccessor')
+  ).togglableProperty('firstChild', 'rightSibling', 'upwardSuccessor')
 
   # Examples:
   # 
@@ -65,7 +65,7 @@ TreeSearch.TreeCursor.reopen
     (@get 'lastChild') ?
     (@get 'leftSibling') ?
     (@get 'upwardPredecessor')
-  ).property('lastChild', 'leftSibling', 'upwardPredecessor')
+  ).togglableProperty('lastChild', 'leftSibling', 'upwardPredecessor')
 
   # @private
   # @param {Number} depth
@@ -118,14 +118,14 @@ TreeSearch.TreeCursor.reopen
   # TODO Make reactive
   successorAtSameDepth: (->
     @findSuccessorAtDepth @get 'depth'
-  ).property().volatile()
+  ).togglableProperty().volatile()
 
   # @readonly
   # @type TreeCursor | null
   # TODO Make reactive
   predecessorAtSameDepth: (->
     @findPredecessorAtDepth @get 'depth'
-  ).property().volatile()
+  ).togglableProperty().volatile()
 
   # @readonly
   # @type TreeCursor | null
@@ -135,7 +135,7 @@ TreeSearch.TreeCursor.reopen
       else succ.get "leafSuccessor"
     else
       null
-  ).property('successor', 'successor.isLeaf', 'successor.leafSuccessor')
+  ).togglableProperty('successor', 'successor.isLeaf', 'successor.leafSuccessor')
 
   # @readonly
   # @type TreeCursor | null
@@ -145,4 +145,4 @@ TreeSearch.TreeCursor.reopen
       else pred.get "leafPredecessor"
     else
       null
-  ).property('predecessor', 'predecessor.isLeaf', 'predecessor.leafSuccessor')
+  ).togglableProperty('predecessor', 'predecessor.isLeaf', 'predecessor.leafSuccessor')

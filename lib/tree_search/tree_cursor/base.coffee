@@ -87,7 +87,9 @@ TreeSearch.TreeCursor.reopen Ember.Copyable, Ember.Freezable,
   # the result but compute it again.
   # 
   # This is esp. useful when traversing volatile trees, e.g. dynamic HTML.
-  # Note that disabling memoization may severely hurt performance.
+  # Note that disabling memoization may hurt performance.
+  # Volatility currently only applies for properties of TreeSearch.TreeCursor 
+  # and not properties of its subclasses.
   # 
   # @see #didChangeTreeVolatility
   # @public

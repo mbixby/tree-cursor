@@ -78,7 +78,7 @@ TreeSearch.TreeCursor.reopen
   # Memoized childNodes if #findChildNodes is available
   _childNodes: (-> 
     @findChildNodes @node
-  ).property()
+  ).togglableProperty()
 
   # Index in #_childNodes
   # TODO Remove, preload
@@ -90,5 +90,5 @@ TreeSearch.TreeCursor.reopen
         (@get 'leftSibling._indexInSiblingNodes') + 1
       else
         (@get 'parent._childNodes').indexOf @node
-  ).property()
+  ).togglableProperty()
   

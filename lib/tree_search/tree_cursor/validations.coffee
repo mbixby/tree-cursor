@@ -72,7 +72,7 @@ TreeSearch.TreeCursor.reopen
       null 
     else
       @get '_extractedValidReplacement'
-  ).property()
+  ).togglableProperty()
 
   # Get property or call function from @validAccessor 
   _extractedValidReplacement: (->
@@ -81,29 +81,29 @@ TreeSearch.TreeCursor.reopen
       @get accessor
     else
       accessor?.apply this, []
-  ).property('validReplacement')
+  ).togglableProperty('validReplacement')
 
   validations: (->
     _.zipObject (@get '_validators').map (validator) ->
       identifier = validator.identifier ? Ember.guidFor validator
       result = null
       [identifier, result]
-  ).property('_validators')
+  ).togglableProperty('_validators')
 
   # @see above
   # @type Ember.Set
   _validators: (->
     Ember.Set.create()
-  ).property()
+  ).togglableProperty()
 
   _firstFailedValidator: (->
     for validator in @get '_validators'
       return validator unless validator.validate @get 'twinFromOriginalTree'
-  ).property()
+  ).togglableProperty()
 
   twinFromOriginalTree: (->
     @copyIntoTree @originalTree
-  ).property()
+  ).togglableProperty()
 
   # Original tree (unrestricted copy without current validators)
   # This property is shared across the tree via #treewideProperties

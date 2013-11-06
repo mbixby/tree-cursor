@@ -14,14 +14,14 @@ TreeSearch.TreeCursor.reopen
   # @readonly
   branch: (->
     _.flatten _.compact [this, (@get 'parent.branch')]
-  ).property('parent.branch')
+  ).togglableProperty('parent.branch')
   
   # Distance from the root (root being at depth 0)
   # @type Number (0 <= x <= Infinity)
   # @readonly
   depth: (->
     (@get 'branch.length') - 1
-  ).property('branch')
+  ).togglableProperty('branch')
 
   # Number of edges on the longest downward simple path to a leaf
   # @type Number (0 <= x <= Infinity)
@@ -31,7 +31,7 @@ TreeSearch.TreeCursor.reopen
       0
     else
       1 + _.max (@get 'children').mapProperty 'height'
-  ).property('isLeaf', 'children.@each.height')
+  ).togglableProperty('isLeaf', 'children.@each.height')
 
   # @type Function (TreeCursor -> TreeCursor | undefined)
   # @return undefined if the cursors are not in the same tree
