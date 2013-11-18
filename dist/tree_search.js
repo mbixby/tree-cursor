@@ -164,13 +164,17 @@ TreeSearch.ObjectWithSharedPool = Ember.Object.extend().reopenClass({
   saveToSharedPool: function(object) {
     var sharedPool;
     sharedPool = this.sharedPoolForObject(object);
-    sharedPool.set(this.keyForObject(object), object);
+    if (sharedPool != null) {
+      sharedPool.set(this.keyForObject(object), object);
+    }
     return object;
   },
   removeFromSharedPool: function(object) {
     var sharedPool;
     sharedPool = this.sharedPoolForObject(object);
-    sharedPool.remove(this.keyForObject(object));
+    if (sharedPool != null) {
+      sharedPool.remove(this.keyForObject(object));
+    }
     return object;
   },
   keyForObject: function(properties) {

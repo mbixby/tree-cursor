@@ -1,5 +1,11 @@
 # TreeSearch.ObjectWithSharedPool
-# TODO Docs
+# 
+# Extending ObjectWithSharedPool is used to ensure uniqueness
+# of initialized objects, i.e. no object with the same unique key
+# will be initialized twice. Objects are stored in a shared pool
+# in a property on a chosen object. This property has often semantical
+# meaning and shouldn't be private.
+# Existence of shared pool is not asserted.
 
 TreeSearch.ObjectWithSharedPool = Ember.Object.extend().reopenClass
   
@@ -16,12 +22,12 @@ TreeSearch.ObjectWithSharedPool = Ember.Object.extend().reopenClass
 
   saveToSharedPool: (object) ->
     sharedPool = @sharedPoolForObject object
-    sharedPool.set (@keyForObject object), object
+    sharedPool?.set (@keyForObject object), object
     object
 
   removeFromSharedPool: (object) ->
     sharedPool = @sharedPoolForObject object
-    sharedPool.remove @keyForObject object
+    sharedPool?.remove @keyForObject object
     object
 
   # @param {object | Ember.Object} properties
