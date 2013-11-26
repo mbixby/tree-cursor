@@ -4,28 +4,31 @@ require 'tree_search/object_with_shared_pool'
 # 
 # Provides a generic way of traversing trees (getting node's children, 
 # siblings, etc.). This essentially allows you to separate node-related data 
-# and logic regarding navigation between nodes. 
+# and logic of navigation between nodes.
 # 
 # # Features
 # 
-# By implementing at least two methods (e.g. #findParentNode 
-# and #findChildrenNodes) you will automatically gain:
+# By implementing just one method (#findChildrenNodes) you will 
+# automatically gain:
 # 
 # * useful methods for traversal, e.g. #root, #firstChild, #successor, 
 #   #leafSuccessor,...
 # * memoization of adjacent nodes (for more efficient traversal)
-# * breadth-first search, depth-first search and others via TreeSearch class
-# * ability to trim trees, prune branches or lazily reject certain nodes
-# * ability to work with partial trees (TODO tests)
-# * support for volatile trees (trees whose nodes change dynamically) (TODO)
+# * extendable breadth-first and depth-first search
+# * support for volatile trees (trees whose nodes change dynamically)
 # * nomenclature that follows conventions (popular or from CS literature)
 # * common API for tree-like objects which allows for reuse of tree-related 
 #   utilities (e.g. Search, Trimming)
-# * ability to connect disjoint (partial) trees (see cursor pools)
 # * accessors with direction that can be interpolated ("#{direction}Sibling")
 # * adaptability; cursors can easily adapted for existing trees with a handful
 #   of functions and even *supplement existing* navigation logic (e.g. native 
 #   HTML DOM)
+# 
+# and if you additionally implement #findParentNode:
+# 
+# * ability to trim trees, prune branches or lazily reject certain nodes
+# * ability to work with partially discovered trees (nodes will recognize each
+#   other – see cursor pools)
 # 
 # # Usage
 # 
@@ -33,7 +36,7 @@ require 'tree_search/object_with_shared_pool'
 # and implementing at least methods #findParentNode and #findChildrenNodes.
 # Alternatively you can implement #findParentNode, #findFirstChildNode 
 # and #findRightSiblingNode. Implement the rest of #find*Node methods
-# for more efficient traversal.
+# if you need or already have more efficient way traversal.
 # 
 # See examples of usage in component tests or look at DOMUtilities component
 # on [Github](TODO link)
@@ -46,14 +49,14 @@ require 'tree_search/object_with_shared_pool'
 # 
 # # Roadmap
 # 
-# * memoization in volatile trees (explicitly create / remove nodes)
+# * manipulation (currently you need call #resetSubtree after changing 
+#   a subtree)
+# * circular dependencies, eventual consistency
+# * better performance
 # * better test coverage
 # * parallelization
 # 
-# TODO Implementation notes, FRP, Ember, mutability of cursors,
-# cursor vs. position (vs. pointer), reconstruction of trees from unconnected branches 
-# (partial trees), define find*Node methods on nodes
-# 
+# TODO Implementation notes, change name - cursor vs. pointer
 # Functional Pearl: The Zipper, by Gerard Huet
 # J#. Functional Programming 7 (5): 549--554 Sepember 1997
 
