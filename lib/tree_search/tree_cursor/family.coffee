@@ -59,6 +59,13 @@ TreeSearch.TreeCursor.reopen
       return candidate if this is candidate.get 'parent'
     undefined
 
+  # Returns a child that belongs to branch of a given cursor
+  # @type Function (TreeCursor) -> TreeCursor | undefined)
+  # @return undefined if the cursors are not in the same tree
+  # @public
+  findChildBelongingToBranchOfCursor: (cursor) ->
+    @findChildBelongingToBranch cursor.get 'branch'
+
   # Sibling ancestors of nodes A, B are nodes C, D if and only if:
   #   – C and D are ancestors of A and B, respectively
   #   – C and D are siblings

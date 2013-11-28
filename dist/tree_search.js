@@ -362,6 +362,9 @@ TreeSearch.TreeCursor.reopen({
     }
     return void 0;
   },
+  findChildBelongingToBranchOfCursor: function(cursor) {
+    return this.findChildBelongingToBranch(cursor.get('branch'));
+  },
   findClosestSiblingAncestorsWithCursor: function(cursor) {
     var a, ancestor, b, siblings, _ref, _ref1;
     _ref = [this, cursor], a = _ref[0], b = _ref[1];
@@ -711,7 +714,12 @@ TreeSearch.TreeCursor.reopen({
     } else {
       return null;
     }
-  }).togglableProperty('predecessor', 'predecessor.isLeaf', 'predecessor.leafSuccessor')
+  }).togglableProperty('predecessor', 'predecessor.isLeaf', 'predecessor.leafSuccessor'),
+  successors: (function() {
+    var succ;
+    succ = Ember.makeArray(this.get('successor'));
+    return succ.concat(Ember.makeArray(this.get('successor.successors')));
+  }).togglableProperty('successor', 'successor.successors')
 });
 
 
@@ -946,21 +954,43 @@ TreeSearch.Base.reopen({
 });
 
 
-TreeSearch.Traversable = Ember.Mixin.create({
-  unknownProperty: function(key) {
-    var value;
-    if (['rootNode', 'cursorClass'].contains(key)) {
-      return;
+var aliases, cursorAlias, cursorProperties;
+
+
+cursorProperties = (function() {
+  var meta;
+  meta = Ember.meta(TreeSearch.TreeCursor.proto(), false);
+  return _.compact(_.map(meta.descs, function(property, name) {
+    if (property instanceof TogglableComputedProperty) {
+      return name;
     }
-    value = this.get("cursor." + key);
-    if (value instanceof TreeSearch.TreeCursor) {
-      return value.get('node');
-    } else if ((value != null ? value[0] : void 0) && (value != null ? value[0] : void 0) instanceof TreeSearch.TreeCursor) {
-      return value.mapProperty('node');
+  }));
+})();
+
+cursorAlias = function(propertyName) {
+  var dependentKey;
+  dependentKey = "cursor." + propertyName;
+  return Ember.computed(dependentKey, function(key) {
+    var result;
+    if (arguments.length !== 1) {
+      Ember.warn("Properties from TreeCursor.Traversable mixin are read-only.");
+    }
+    result = this.get(dependentKey);
+    if (result instanceof TreeSearch.TreeCursor) {
+      return result.get('node');
+    } else if ((result != null ? result[0] : void 0) && (result != null ? result[0] : void 0) instanceof TreeSearch.TreeCursor) {
+      return result.mapProperty('node');
     } else {
-      return value;
+      return result;
     }
-  },
+  });
+};
+
+aliases = _.zipObject(cursorProperties.map(function(name) {
+  return [name, cursorAlias(name)];
+}));
+
+TreeSearch.Traversable = Ember.Mixin.create(Ember.merge(aliases, {
   cursor: (function() {
     var cursor, rootNode, _ref;
     cursor = (this.get('cursorClass')).create({
@@ -974,8 +1004,13 @@ TreeSearch.Traversable = Ember.Mixin.create({
     }
   }).property(),
   rootNode: void 0,
-  cursorClass: TreeSearch.TreeCursor
-});
+  cursorClass: TreeSearch.TreeCursor,
+  findChildBelongingBranchOfNode: function(node) {
+    var ret;
+    ret = (this.get('cursor')).findChildBelongingToBranchOfCursor(node.get('cursor'));
+    return ret != null ? ret.get('node') : void 0;
+  }
+}));
 
 
 TreeSearch.Trimming = Ember.Object.extend().reopenClass({

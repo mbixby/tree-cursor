@@ -1,3 +1,5 @@
+require 'tree_search/tree_cursor/*'
+
 # TreeSearch.Traversable
 # 
 # By applying the mixin into a node class, the class gains all the navigation
@@ -17,29 +19,71 @@
 # 
 # The tree is defined by root node's #cursor (all cursors will share 
 # its cursorPool)
+# 
+# List of read-only public properties aliased from TreeCursor:
+# 
+# * branch
+# * children
+# * depth
+# * firstChild
+# * firstChildFromLeft
+# * firstChildFromRight
+# * height
+# * isLeaf
+# * isRoot
+# * lastChild
+# * leafPredecessor
+# * leafSuccessor
+# * leftLeafSuccessor
+# * leftSibling
+# * leftSiblings
+# * leftSuccessor
+# * leftSuccessorAtSameDepth
+# * leftmostSibling
+# * parent
+# * predecessor
+# * predecessorAtSameDepth
+# * rightLeafSuccessor
+# * rightSibling
+# * rightSiblings
+# * rightSuccessor
+# * rightSuccessorAtSameDepth
+# * rightmostSibling
+# * root
+# * successor
+# * successorAtSameDepth
+# * twinFromOriginalTree
+# * upwardPredecessor
+# * upwardSuccessor
+# * validations
 
-TreeSearch.Traversable = Ember.Mixin.create
+# Retrieves a list of properties to be mixed in by TreeSearch.Traversable.
+# These are equal to all properties of TreeCursor that have a type 
+# of `TogglableComputedProperty`.
+cursorProperties = do ->
+  meta = Ember.meta TreeSearch.TreeCursor.proto(), false
+  _.compact _.map meta.descs, (property, name) -> 
+    name if property instanceof TogglableComputedProperty
 
-  # Aliases public navigation properties from TreeCursor
-  # and returns the actual node, not cursor. Note that nearly all
-  # such properties are read-only.
-  unknownProperty: (key) ->
-    if ['rootNode', 'cursorClass'].contains key
-      return
-    value = @get "cursor.#{key}"
-    if value instanceof TreeSearch.TreeCursor
-      value.get 'node'
-    else if value?[0] and value?[0] instanceof TreeSearch.TreeCursor
-      value.mapProperty 'node'
+cursorAlias = (propertyName) ->
+  dependentKey = "cursor.#{propertyName}"
+  Ember.computed dependentKey, (key) ->
+    if arguments.length isnt 1
+      Ember.warn "Properties from TreeCursor.Traversable mixin are read-only."
+    result = @get dependentKey
+    if result instanceof TreeSearch.TreeCursor
+      result.get 'node'
+    else if result?[0] and result?[0] instanceof TreeSearch.TreeCursor
+      result.mapProperty 'node'
     else
-      value
+      result
 
-  # setUnknownProperty: (key, value) ->
-  #   cursor = value.get 'cursor' if value?.get?
-  #   only if cursor responds to key...
-  #     @set "cursor.#{key}", cursor if cursor instanceof TreeSearch.TreeCursor
-  #   else
-  #     @set key, value
+# Maps cursor properties to ComputedProperty aliases 
+# from TreeSearch.Traversable to TreeCursor
+aliases = _.zipObject cursorProperties.map (name) -> 
+  [name, cursorAlias name]
+
+TreeSearch.Traversable = Ember.Mixin.create Ember.merge aliases,
   
   # Pointer to this node
   # @type TreeSearch.TreeCursor
@@ -59,3 +103,11 @@ TreeSearch.Traversable = Ember.Mixin.create
   # You can provide your own TreeCursor subclass
   # @abstract
   cursorClass: TreeSearch.TreeCursor
+
+  # @param {Object} node
+  # @returns {Object} node
+  # @see findChildBelongingBranchOfCursor
+  findChildBelongingBranchOfNode: (node) ->
+    ret = (@get 'cursor').findChildBelongingToBranchOfCursor node.get 'cursor'
+    ret?.get 'node'
+  

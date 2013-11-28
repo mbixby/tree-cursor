@@ -146,3 +146,10 @@ TreeSearch.TreeCursor.reopen
     else
       null
   ).togglableProperty('predecessor', 'predecessor.isLeaf', 'predecessor.leafSuccessor')
+
+  # @type Array ([TreeCursor])
+  # @readonly
+  successors: (->
+    succ = Ember.makeArray @get 'successor'
+    succ.concat Ember.makeArray @get 'successor.successors'
+  ).togglableProperty('successor', 'successor.successors')
