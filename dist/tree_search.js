@@ -85,8 +85,16 @@ var TogglableComputedProperty,
 TogglableComputedProperty = (function(_super) {
   __extends(TogglableComputedProperty, _super);
 
-  function TogglableComputedProperty() {
-    Ember.ComputedProperty.apply(this, arguments);
+  function TogglableComputedProperty(func, opts) {
+    var wrapper;
+    wrapper = function(keyName, value, cachedValue) {
+      if (arguments.length > 1) {
+        return value;
+      } else {
+        return cachedValue != null ? cachedValue : func.apply(this, arguments);
+      }
+    };
+    Ember.ComputedProperty.call(this, wrapper, opts);
   }
 
   TogglableComputedProperty.prototype.get = function(obj, keyName) {
@@ -98,7 +106,7 @@ TogglableComputedProperty = (function(_super) {
   };
 
   TogglableComputedProperty.prototype.set = function(obj, keyName, value) {
-    if (obj.isVolatile || value === void 0) {
+    if (obj.isVolatile) {
       return value;
     } else {
       return Ember.ComputedProperty.prototype.set.apply(this, arguments);
@@ -451,21 +459,7 @@ TreeSearch.TreeCursor.reopen({
     return void 0 !== this.getMemoized(propertyName);
   },
   _baseNeighborProperties: ['parent', 'firstChild', 'rightSibling', 'leftSibling', '_childNodes', '_indexInSiblingNodes'],
-  _baseChildrenProperties: ['firstChild', '_childNodes', '_indexInSiblingNodes'],
-  _clearCacheOfProperty: function(name) {
-    var descriptor, meta;
-    descriptor = this._getDescriptorOfProperty(name);
-    if (descriptor._cacheable) {
-      meta = Ember.meta(this, true);
-      return delete meta.cache[name];
-    }
-  },
-  _getDescriptorOfProperty: function(name) {
-    var descs, prototype;
-    prototype = TreeSearch.TreeCursor.proto();
-    descs = (Ember.meta(prototype)).descs;
-    return descs[name];
-  }
+  _baseChildrenProperties: ['firstChild', '_childNodes', '_indexInSiblingNodes']
 });
 
 
@@ -725,8 +719,7 @@ TreeSearch.TreeCursor.reopen({
 
 TreeSearch.TreeCursor.Validator = Ember.Object.extend({
   error: void 0,
-  validate: void 0,
-  isTreewideValidation: false
+  validate: void 0
 });
 
 
@@ -752,8 +745,6 @@ TreeSearch.TreeCursor.reopen({
     failed = this.get('_firstFailedValidator');
     if (!failed) {
       return this;
-    } else if (failed.get('isTreewideValidation')) {
-      return null;
     } else {
       return this.get('_extractedValidReplacement');
     }

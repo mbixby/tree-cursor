@@ -1,12 +1,28 @@
 # TogglableComputedProperty
-# Bypasses cache if called on object with isVolatile attribute
-# set to true
-# Exposes 'cursorProperty' on Function for convenient declaration
+# 
+# Extends Ember.ComputedProperty with additional behavior:
+# * cache is be bypassed if the the getter is called from object 
+#   with #isVolatile attribute set to true
+# * setting to any value at any point always results in proper
+#   setup of observers and dependencies (see Ember.ComputedProperty#set)
+# * cache is be bypassed if the value is undefined
+# 
+# TogglableComputedProperty does not support setters.
+# Exposes 'togglableProperty' on Function for convenient declaration
 
 class TogglableComputedProperty extends Ember.ComputedProperty
   
-  constructor: ->
-    Ember.ComputedProperty.apply this, arguments
+  constructor: (func, opts) ->
+    # Function with all three arguments is handled differently 
+    # in Ember.ComputedProperty#set (setting its value does not result
+    # in setting of property value on the object itself but rather saving
+    # it into cache)
+    wrapper = (keyName, value, cachedValue) ->
+      if arguments.length > 1
+        value
+      else
+        cachedValue ? func.apply this, arguments
+    Ember.ComputedProperty.call this, wrapper, opts
 
   get: (obj, keyName) ->
     if obj.isVolatile
@@ -15,7 +31,7 @@ class TogglableComputedProperty extends Ember.ComputedProperty
       Ember.ComputedProperty::get.apply this, arguments
 
   set: (obj, keyName, value) ->
-    if obj.isVolatile or value is undefined
+    if obj.isVolatile
       value
     else
       Ember.ComputedProperty::set.apply this, arguments

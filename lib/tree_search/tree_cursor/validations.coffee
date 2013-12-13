@@ -65,11 +65,11 @@ TreeSearch.TreeCursor.reopen
     failed = @get '_firstFailedValidator'
     if not failed
       this
-    else if failed.get 'isTreewideValidation'
+    # else if failed.get 'isTreewideValidation'
       # TODO Invalidate the whole tree
       # (@get 'cursorPool').forEach (_, cursor)
       #   cursor.invalidate()
-      null 
+      # null 
     else
       @get '_extractedValidReplacement'
   ).togglableProperty()

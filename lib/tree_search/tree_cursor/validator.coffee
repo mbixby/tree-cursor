@@ -13,4 +13,4 @@ TreeSearch.TreeCursor.Validator = Ember.Object.extend
   # By default, any invalid node is skipped (replaced by its children).
   # If isTreewideValidation is set to true, the tree is invalid
   # when any one of its nodes (cursors) is invalid.
-  isTreewideValidation: no
+  # isTreewideValidation: no

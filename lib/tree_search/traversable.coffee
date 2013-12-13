@@ -58,7 +58,7 @@ require 'tree_search/tree_cursor/*'
 # * validations
 
 # Retrieves a list of properties to be mixed in by TreeSearch.Traversable.
-# These are equal to all properties of TreeCursor that have a type 
+# This list equals to all properties of TreeCursor that have a type
 # of `TogglableComputedProperty`.
 cursorProperties = do ->
   meta = Ember.meta TreeSearch.TreeCursor.proto(), false

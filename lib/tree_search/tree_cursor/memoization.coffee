@@ -2,6 +2,7 @@
 # Memoization
 # 
 # Methods for invalidating and inspecting property cache
+# TODO More detailed documentation
 # @see TogglableComputedProperty
 
 TreeSearch.TreeCursor.reopen
@@ -22,11 +23,20 @@ TreeSearch.TreeCursor.reopen
   resetChildren: ->
     Ember.changeProperties =>
       cursor.resetSubtree() for cursor in @get 'children'
-      # TODO This doesn't look well
+      # TODO Review
       @resetProperties @_baseChildrenProperties
 
   resetProperties: (keys) ->
     Ember.changeProperties =>
+      # Ember.Object#propertyDidChange notifies all listeners about a change
+      # in the property. This effectively clears the memoized values and calls
+      # the underlying getter, if neccessary.
+      # This method would not work for regular properties (attributes) on this 
+      # object because #propertyDidChange only works if the ComputedProperty 
+      # is properly set up. Since the ComputedProperty does not ensure this 
+      # behavior, #propertyDidChange works in general case only
+      # with TogglableComputedProperty. See TogglableComputedProperty class
+      # for more info.
       @propertyDidChange key for key in keys
 
   # Constructs an object with memoized properties from the current
@@ -40,7 +50,6 @@ TreeSearch.TreeCursor.reopen
     
   # Allows to peek at property cache. Unlike @cacheFor, this also looks
   # at keys defined on this object.
-  # TODO Comment about undefined vs null
   getMemoized: (propertyName) ->
     value = @[propertyName]
     if value is undefined
@@ -55,14 +64,3 @@ TreeSearch.TreeCursor.reopen
   _baseNeighborProperties: ['parent', 'firstChild', 'rightSibling', 'leftSibling', '_childNodes', '_indexInSiblingNodes']
   
   _baseChildrenProperties: ['firstChild', '_childNodes', '_indexInSiblingNodes']
-
-  _clearCacheOfProperty: (name) ->
-    descriptor = @_getDescriptorOfProperty name
-    if descriptor._cacheable
-      meta = Ember.meta this, true
-      delete meta.cache[name]
-
-  _getDescriptorOfProperty: (name) ->
-    prototype = TreeSearch.TreeCursor.proto()
-    descs = (Ember.meta prototype).descs
-    descs[name]
