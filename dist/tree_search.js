@@ -399,27 +399,30 @@ TreeSearch.TreeCursor.reopen({
     return this.resetProperties(this._baseNeighborProperties);
   },
   resetSubtree: function() {
-    var _this = this;
-    return Ember.changeProperties(function() {
-      var cursor, _i, _len, _ref;
-      _ref = _this.get('children');
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        cursor = _ref[_i];
-        cursor.resetSubtree();
-      }
-      return _this.resetCursor();
-    });
+    this.resetChildSubtrees();
+    return this.resetCursor();
   },
-  resetChildren: function() {
-    var _this = this;
-    return Ember.changeProperties(function() {
-      var cursor, _i, _len, _ref;
-      _ref = _this.get('children');
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        cursor = _ref[_i];
-        cursor.resetSubtree();
+  resetChildSubtrees: function() {
+    var childrenBeforeResetting,
+      _this = this;
+    childrenBeforeResetting = this.get('children');
+    Ember.changeProperties(function() {
+      var c, _i, _len;
+      for (_i = 0, _len = childrenBeforeResetting.length; _i < _len; _i++) {
+        c = childrenBeforeResetting[_i];
+        c.resetSubtree();
       }
       return _this.resetProperties(_this._baseChildrenProperties);
+    });
+    return Ember.changeProperties(function() {
+      var c, _i, _len, _ref, _results;
+      _ref = _.difference(_this.get('children'), childrenBeforeResetting);
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        c = _ref[_i];
+        _results.push(c.resetSubtree());
+      }
+      return _results;
     });
   },
   resetProperties: function(keys) {

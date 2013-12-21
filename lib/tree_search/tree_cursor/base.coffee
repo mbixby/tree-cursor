@@ -6,30 +6,6 @@ require 'tree_search/object_with_shared_pool'
 # siblings, etc.). This essentially allows you to separate node-related data 
 # and logic of navigation between nodes.
 # 
-# # Features
-# 
-# By implementing just one method (#findChildrenNodes) you will 
-# automatically gain:
-# 
-# * useful methods for traversal, e.g. #root, #firstChild, #successor, 
-#   #leafSuccessor,...
-# * memoization of adjacent nodes (for more efficient traversal)
-# * extendable breadth-first and depth-first search
-# * support for volatile trees (trees whose nodes change dynamically)
-# * nomenclature that follows conventions (popular or from CS literature)
-# * common API for tree-like objects which allows for reuse of tree-related 
-#   utilities (e.g. Search, Trimming)
-# * accessors with direction that can be interpolated ("#{direction}Sibling")
-# * adaptability; cursors can easily adapted for existing trees with a handful
-#   of functions and even *supplement existing* navigation logic (e.g. native 
-#   HTML DOM)
-# 
-# and if you additionally implement #findParentNode:
-# 
-# * ability to trim trees, prune branches or lazily reject certain nodes
-# * ability to work with partially discovered trees (nodes will recognize each
-#   other – see cursor pools)
-# 
 # # Usage
 # 
 # Provide your own tree-specific implemetation by extending this class
@@ -40,25 +16,6 @@ require 'tree_search/object_with_shared_pool'
 # 
 # See examples of usage in component tests or look at DOMUtilities component
 # on [Github](TODO link)
-# 
-# # Antipatterns
-# 
-# Don't use TreeCursor...
-# * when using trees for data storage, not data representation
-# * in large trees – there are currently no performance tests
-# 
-# # Roadmap
-# 
-# * manipulation (currently you need call #resetSubtree after changing 
-#   a subtree)
-# * circular dependencies, eventual consistency
-# * better performance
-# * better test coverage
-# * parallelization
-# 
-# TODO Implementation notes, change name - cursor vs. pointer
-# Functional Pearl: The Zipper, by Gerard Huet
-# J#. Functional Programming 7 (5): 549--554 Sepember 1997
 
 TreeSearch.TreeCursor = TreeSearch.ObjectWithSharedPool.extend().reopenClass
   

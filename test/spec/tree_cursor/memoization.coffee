@@ -38,7 +38,7 @@ describe "TreeCursor (memoization)", ->
       expect(cursor.getMemoized 'rightSibling').to.not.be.defined
       expect((cursors.get 'E').getMemoized 'parent').to.not.be.defined
 
-  describe "#resetChildren", ->
+  describe "#resetChildSubtrees", ->
     it "shoud reset children and their subtrees", ->
       cursor = cursors.get 'B'
       cursor.resetCursor()

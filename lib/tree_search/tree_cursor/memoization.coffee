@@ -13,18 +13,21 @@ TreeSearch.TreeCursor.reopen
   resetCursor: ->
     @resetProperties @_baseNeighborProperties
 
+  # TODO Document
   # @public
   resetSubtree: ->
-    Ember.changeProperties =>
-      cursor.resetSubtree() for cursor in @get 'children'
-      @resetCursor()
+    @resetChildSubtrees()
+    @resetCursor()
 
+  # TOO Document
   # @public
-  resetChildren: ->
+  resetChildSubtrees: ->
+    childrenBeforeResetting = @get 'children'
     Ember.changeProperties =>
-      cursor.resetSubtree() for cursor in @get 'children'
-      # TODO Review
+      c.resetSubtree() for c in childrenBeforeResetting
       @resetProperties @_baseChildrenProperties
+    Ember.changeProperties =>
+      c.resetSubtree() for c in _.difference (@get 'children'),childrenBeforeResetting
 
   resetProperties: (keys) ->
     Ember.changeProperties =>
