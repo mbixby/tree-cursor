@@ -104,7 +104,8 @@ Helpers.AsciiTreeParser.parse """
 
 ## Development
 
-Run `npm install; grunt` to compile.
+Run `npm install; bower install; grunt` to compile.
+Run `grunt test` for unit and acceptance tests.
 Include in your projects with Bower.
 
 ## License
