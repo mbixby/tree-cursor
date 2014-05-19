@@ -111,3 +111,5 @@ Include in your projects with Bower.
 ## License
 
 Copyright 2013 by Michal Obrocnik and licensed under the MIT License. See included [LICENSE](/mbixby/tree-cursor/blob/master/LICENSE) file for details. 'Tree' icon by Bruno Forni is used under a [CC BY](http://creativecommons.org/licenses/by/3.0/us/) lincese.
+
+Some documentation and comments are cited from Obrocnik, Michal. "Document Annotation Tool." Thesis. Masaryk University, 2014. Web.
