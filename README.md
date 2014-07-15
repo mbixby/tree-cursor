@@ -55,10 +55,10 @@ a.get 'successor' #=> a
 class Node
   name: undefined
   childNodes: undefined
-  getCursor: -> TreeCursor.create node: this
+  init: -> @cursor = TreeCursor.create node: this
 a = Node.create()
 b = Node.create parentNode: a
-a.getCursor().get 'successor' #=> a
+a.cursor.get 'successor' #=> a
 ```
 
 ### Advanced
