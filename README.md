@@ -1,6 +1,6 @@
 # TreeCursor
 
-TreeCursor provides a generic way of traversing trees (retrieving node's children, successors, etc.) with support for togglable memoization, property observers, virtual tree representations, lazy validators and partial tree discovery.
+TreeCursor provides a generic way of traversing trees (retrieving node's children, successors, etc.) with support for togglable memoization, property observers, virtual tree representations, lazy validators and partial tree discovery. This is mostly an **experimental** project.
 
 ## Features 
 
